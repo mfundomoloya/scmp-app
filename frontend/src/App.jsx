@@ -1,19 +1,23 @@
-import { useState } from "react";
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Header from './components/Header';
+import Home from './pages/Home.jsx'; 
+import Login from './pages/Login'; 
+import Dashboard from './pages/Dashboard';
 
 function App() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-      <h1 className="text-3xl font-bold">Smart Campus Services Portal</h1>
-      <button
-        onClick={() => setCount(count + 1)}
-        className="mt-4 bg-blue-500 text-white rounded-lg py-2 px-4 hover:bg-blue-600"
-      >
-        Count is {count}
-      </button>
-    </div>
-  );
+    return (
+        <Router>
+            <Header />
+            <div className="container mx-auto p-4">
+                <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                </Routes>
+            </div>
+        </Router>
+    );
 }
 
 export default App;
