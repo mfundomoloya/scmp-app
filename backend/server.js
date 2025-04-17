@@ -17,12 +17,11 @@ app.use(bodyParser.json());
 app.use('/api/users', userRoutes);
 app.use('/api/services', serviceRoutes);
 
-// MongoDB Connection
+
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.log(err));
 
-// Basic Route
 app.get('/', (req, res) => {
     res.send('Welcome to the Smart Campus Services Portal API');
 });
