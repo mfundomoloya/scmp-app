@@ -102,4 +102,57 @@ router.get('/verify-email/:token', async (req, res) => {
   }
 });
 
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    console.log('Login request:', { email });
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ msg: 'Email and password are required' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ msg: 'Invalid email format' });
+    }
+
+    // Check for user
+    console.log('Checking for user:', email);
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
+
+    // Check email verification
+    if (!user.isVerified) {
+      return res.status(400).json({ msg: 'Please verify your email before logging in' });
+    }
+
+    // Check password
+    console.log('Comparing password');
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
+
+    // Generate JWT
+    console.log('Generating JWT');
+    const payload = { user: { id: user.id, role: user.role } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Return response
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email, role: user.role, isVerified: user.isVerified },
+    });
+  } catch (err) {
+    console.error('Login error:', {
+      message: err.message,
+      stack: err.stack,
+      code: err.code,
+    });
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;
