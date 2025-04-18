@@ -1,43 +1,41 @@
-import { NavLink } from 'react-router-dom';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
-    <header className="bg-blue-600 text-white shadow-md">
-      <nav className="container mx-auto px-4 py-4 flex justify-between items-center">
+    <header className="bg-blue-600 text-white p-4">
+      <div className="container mx-auto flex justify-between items-center">
         <h1 className="text-xl font-bold">Smart Campus Portal</h1>
-        <ul className="flex space-x-6">
-          <li>
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                isActive ? 'text-yellow-300' : 'hover:text-yellow-300'
-              }
-            >
-              Home
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/login"
-              className={({ isActive }) =>
-                isActive ? 'text-yellow-300' : 'hover:text-yellow-300'
-              }
-            >
-              Login
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/register"
-              className={({ isActive }) =>
-                isActive ? 'text-yellow-300' : 'hover:text-yellow-300'
-              }
-            >
-              Register
-            </NavLink>
-          </li>
-        </ul>
-      </nav>
+        <nav>
+          <ul className="flex space-x-4">
+            <li><a href="/" className="hover:underline">Home</a></li>
+            {user ? (
+              <>
+                <li><a href={`/${user.role}`} className="hover:underline">Dashboard</a></li>
+                <li>
+                  <button onClick={handleLogout} className="hover:underline">
+                    Logout
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li><a href="/login" className="hover:underline">Login</a></li>
+                <li><a href="/register" className="hover:underline">Register</a></li>
+              </>
+            )}
+          </ul>
+        </nav>
+      </div>
     </header>
   );
 };

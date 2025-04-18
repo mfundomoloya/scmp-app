@@ -7,6 +7,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('API URL:', import.meta.env.VITE_API_URL); // Debug
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -19,6 +21,8 @@ export const AuthProvider = ({ children }) => {
         })
         .catch((err) => {
           console.error('Auth fetch error:', err);
+          localStorage.removeItem('token');
+          delete axios.defaults.headers.common['x-auth-token'];
           setLoading(false);
         });
     } else {
@@ -27,18 +31,30 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-      email,
-      password,
-    });
-    localStorage.setItem('token', res.data.token);
-    axios.defaults.headers.common['x-auth-token'] = res.data.token;
-    setUser(res.data.user);
+    try {
+      console.log('Logging in with:', { email });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+        email,
+        password,
+      });
+      console.log('Login response:', res.data);
+      localStorage.setItem('token', res.data.token);
+      axios.defaults.headers.common['x-auth-token'] = res.data.token;
+      setUser(res.data.user);
+      return res.data.user.role; // Return role for redirect in Login.jsx
+    } catch (err) {
+      console.error('Login error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
+      throw err;
+    }
   };
 
   const register = async (name, email, password, role) => {
     try {
-      console.log('Registering with:', { name, email, password, role });
+      console.log('Registering with:', { name, email, role });
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
         name,
         email,
@@ -55,7 +71,7 @@ export const AuthProvider = ({ children }) => {
         response: err.response?.data,
         status: err.response?.status,
       });
-      throw err; // Rethrow to handle in Register.jsx
+      throw err;
     }
   };
 

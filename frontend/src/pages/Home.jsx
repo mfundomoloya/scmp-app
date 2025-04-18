@@ -18,20 +18,6 @@ const Home = () => {
         <p className="md:p-6 text-lg md:text-xl text-gray-700 mb-8">
           Manage your campus services: Book rooms, view schedules, report issues, and stay updated.
         </p>
-        <div className="space-y-4 md:space-y-0 md:space-x-4">
-          <a
-            href="/login"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-          >
-            Login
-          </a>
-          <a
-            href="/register"
-            className="inline-block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700"
-          >
-            Register
-          </a>
-        </div>
       </div>
     </main>
   );

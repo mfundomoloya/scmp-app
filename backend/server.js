@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const bookingsRoutes = require('./routes/bookingsRoutes');
 const schedulesRoutes = require('./routes/schedulesRoutes');
 const announcementsRoutes = require('./routes/announcementsRoutes');
+
 require('dotenv').config();
 
 const app = express();
