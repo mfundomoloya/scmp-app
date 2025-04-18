@@ -20,7 +20,14 @@ const Header = () => {
             <li><a href="/" className="hover:underline">Home</a></li>
             {user ? (
               <>
-                <li><a href={`/${user.role}`} className="hover:underline">Dashboard</a></li>
+                 <li className="text-sm">
+                  Welcome, {user.name}
+                </li>
+                <li>
+                  <a href={`/${user.role}`} className="hover:underline">
+                    Dashboard
+                  </a>
+                </li>
                 <li>
                   <button onClick={handleLogout} className="hover:underline">
                     Logout
