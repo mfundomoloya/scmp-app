@@ -1,10 +1,19 @@
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+
 const LecturerDashboard = () => {
-    return (
-      <div className="min-h-screen bg-gray-100 p-6">
-        <h1 className="text-3xl font-bold text-blue-600">Lecturer Dashboard</h1>
-        <p className="mt-4 text-gray-700">Welcome, Lecturer! Manage your schedule and bookings here.</p>
-      </div>
-    );
-  };
-  
-  export default LecturerDashboard;
+  const { user } = useContext(AuthContext);
+
+  return (
+    <div className="container mx-auto p-6">
+      <h2 className="text-2xl font-bold mb-4">
+        {user ? `Welcome, ${user.name}` : 'Lecturer Dashboard'}
+      </h2>
+      <p className="text-gray-700">
+        This is the lecturer dashboard. Here you can manage your schedule, book rooms, and more.
+      </p>
+    </div>
+  );
+};
+
+export default LecturerDashboard;

@@ -1,10 +1,19 @@
-const AdminDashboard = () => {
-    return (
-      <div className="min-h-screen bg-gray-100 p-6">
-        <h1 className="text-3xl font-bold text-blue-600">Adnin Dashboard</h1>
-        <p className="mt-4 text-gray-700">Welcome, Admin! Manage your schedule and bookings here.</p>
-      </div>
-    );
-  };
-  
-  export default AdminDashboard;
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+
+const AdminPanel = () => {
+  const { user } = useContext(AuthContext);
+
+  return (
+    <div className="container mx-auto p-6">
+      <h2 className="text-2xl font-bold mb-4">
+        {user ? `Welcome, ${user.name}` : 'Admin Panel'}
+      </h2>
+      <p className="text-gray-700">
+        This is the admin panel. Here you can manage users, rooms, and system settings.
+      </p>
+    </div>
+  );
+};
+
+export default AdminPanel;
