@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const Booking = require('../models/Booking'); 
+const auth = require('../middleware/auth');
+const { createBooking, getBookings, cancelBooking  } = require('../controllers/bookingController'); 
 
-router.get('/', (req, res) => {
-    res.send('Booking route is working!');
-  });
+router.post('/bookings', createBooking);
+router.get('/bookings', getBookings);
+router.delete('/bookings/:id', auth, cancelBooking);
+
 
 module.exports = router;
