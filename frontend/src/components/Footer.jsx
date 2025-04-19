@@ -2,18 +2,18 @@ import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-800 text-white p-4 mt-auto">
-      <div className="container mx-auto flex flex-col items-center space-y-2">
+    <footer>
+      <div>
         <nav>
-          <ul className="flex space-x-4">
+          <ul className=" list-none">
             <li>
-              <Link to="/about" className="hover:underline">About</Link>
+              <Link to="/about" className="text-black no-underline">About</Link>
             </li>
             <li>
-              <Link to="/contact" className="hover:underline">Contact</Link>
+              <Link to="/contact" className="text-black no-underline">Contact</Link>
             </li>
             <li>
-              <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
+              <Link to="/privacy" className="text-black no-underline">Privacy Policy</Link>
             </li>
           </ul>
         </nav>

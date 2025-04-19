@@ -1,7 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@plugin "daisyui";
 
 body{
-    background-color: rgb(204, 197, 185);
+    margin: 0;
 }

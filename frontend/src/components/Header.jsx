@@ -12,26 +12,25 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-blue-600 text-white p-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-xl font-bold">Smart Campus Portal</h1>
+    <header>
+      <div>
+        <Link to="/" className=" no-underline">
+          <h1>Smart Campus Portal</h1>
+        </Link>
         <nav>
-          <ul className="flex space-x-4">
-            <li>
-              <Link to="/" className="hover:underline">Home</Link>
-            </li>
+          <ul className=" list-none">
             {user ? (
               <>
-                <li className="text-sm">
-                  Welcome, {user.name || 'User'}
-                </li>
                 <li>
-                  <Link to={`/${user.role}`} className="hover:underline">
+                  Welcome, <span>{user.name || 'User '}</span>
+                </li>
+                {/* <li>
+                  <Link to={`/${user.role}`}>
                     Dashboard
                   </Link>
-                </li>
+                </li> */}
                 <li>
-                  <button onClick={handleLogout} className="hover:underline">
+                  <button onClick={handleLogout}>
                     Logout
                   </button>
                 </li>
@@ -39,10 +38,10 @@ const Header = () => {
             ) : (
               <>
                 <li>
-                  <Link to="/login" className="hover:underline">Login</Link>
+                  <Link to="/login" className="text-black no-underline visited:underline visited:text-blue-500">Login</Link>
                 </li>
                 <li>
-                  <Link to="/register" className="hover:underline">Register</Link>
+                  <Link to="/register" className="text-black no-underline visited:underline visited:text-blue-500">Register</Link>
                 </li>
               </>
             )}

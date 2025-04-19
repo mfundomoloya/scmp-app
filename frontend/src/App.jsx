@@ -10,10 +10,9 @@ import Register from './components/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import Header from './components/Header';
 import Footer from './components/Footer';
-
-const About = () => <div className="container mx-auto p-4"><h1>About</h1><p>About the Smart Campus Portal.</p></div>;
-const Contact = () => <div className="container mx-auto p-4"><h1>Contact</h1><p>Contact us at support@smartcampus.com.</p></div>;
-const Privacy = () => <div className="container mx-auto p-4"><h1>Privacy Policy</h1><p>Our privacy policy details.</p></div>;
+import About from './pages/About';
+import Contact from './pages/Contact';
+import Privacy from './pages/Privacy';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useContext(AuthContext);
