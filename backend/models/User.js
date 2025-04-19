@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum:['student', 'lecturer', 'admin'], required: true},
     isVerified: { type: Boolean, default: false },
     verificationToken: { type: String },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
