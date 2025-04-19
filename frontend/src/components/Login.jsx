@@ -1,5 +1,5 @@
 import { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -68,6 +68,11 @@ const Login = () => {
             />
           </div>
           {error && <p className="text-red-600 mb-4">{error}</p>}
+          <div>
+            <Link to="/forgot-password">
+              Forgot Password?
+            </Link>
+          </div>
           <button
             type="submit"
           >

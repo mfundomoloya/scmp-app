@@ -180,4 +180,83 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-module.exports = { register, login, verifyEmail };
+const forgotPassword = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email } = req.body;
+
+  try {
+    console.log('Password reset requested for:', { email });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(400).json({ msg: 'No account found with this email' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+    console.log('Reset token saved:', { email, resetToken });
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    console.log('Reset URL:', resetUrl);
+
+    await transporter.sendMail({
+      from: `"Smart Campus" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Reset Your Password',
+      html: `
+        <h2>Password Reset Request</h2>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetUrl}">Reset Password</a>
+        <p>Raw link: ${resetUrl}</p>
+        <p>This link expires in 1 hour. If you did not request a reset, ignore this email.</p>
+      `,
+    });
+    console.log('Reset email sent to:', email);
+
+    res.json({ msg: 'Password reset link sent to your email' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    console.log('Resetting password with token:', { token });
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+    if (!user) {
+      return res.status(400).json({ msg: 'Invalid or expired reset token' });
+    }
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+    console.log('Password reset for:', user.email);
+
+    res.json({ msg: 'Password reset successfully. You can now log in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+module.exports = { register, login, verifyEmail, forgotPassword, resetPassword }; 
