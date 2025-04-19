@@ -10,12 +10,12 @@ const Home = () => {
   if (user) return <Navigate to={`/${user.role}`} />;
 
   return (
-    <main className="flex-grow flex items-center justify-center bg-gray-100">
-      <div className="text-center px-4">
-        <h1 className="text-4xl md:text-5xl font-bold text-blue-600 mb-4">
+    <main >
+      <div >
+        <h1 >
           Welcome to Smart Campus Services Portal
         </h1>
-        <p className="md:p-6 text-lg md:text-xl text-gray-700 mb-8">
+        <p>
           Manage your campus services: Book rooms, view schedules, report issues, and stay updated.
         </p>
       </div>

@@ -5,11 +5,11 @@ const LecturerDashboard = () => {
   const { user } = useContext(AuthContext);
 
   return (
-    <div className="container mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-4">
+    <div>
+      <h2>
         {user ? `Welcome, ${user.name}` : 'Lecturer Dashboard'}
       </h2>
-      <p className="text-gray-700">
+      <p>
         This is the lecturer dashboard. Here you can manage your schedule, book rooms, and more.
       </p>
     </div>
