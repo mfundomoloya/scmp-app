@@ -31,7 +31,7 @@ const BookingList = ({ refresh }) => {
   const handleCancel = async (id) => {
     try {
       console.log('Cancelling booking:', id);
-      await axios.delete(`http://localhost:5000/api/bookings/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/bookings/${id}`, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       console.log('Booking cancelled:', id);

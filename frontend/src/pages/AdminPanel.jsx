@@ -1,17 +1,11 @@
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import BookingList from '../components/BookingList';
 
 const AdminPanel = () => {
-  const { user } = useContext(AuthContext);
-
   return (
     <div>
-      <h2>
-        {user ? `Welcome, ${user.name}` : 'Admin Panel'}
-      </h2>
-      <p>
-        This is the admin panel. Here you can manage users, rooms, and system settings.
-      </p>
+      <h1>Admin Panel</h1>
+      <p>Manage all bookings and users.</p>
+      <BookingList />
     </div>
   );
 };

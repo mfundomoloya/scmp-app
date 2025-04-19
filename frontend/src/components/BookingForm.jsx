@@ -18,8 +18,10 @@ const BookingForm = ({ onBookingCreated }) => {
 
     try {
       console.log('Creating booking:', { room, date, startTime, endTime });
+      console.log('API URL:',  `${import.meta.env.VITE_API_URL}/api/bookings`);
+      console.log('Token:', localStorage.getItem('token'));
       const response = await axios.post(
-        'http://localhost:5000/api/bookings',
+        `${import.meta.env.VITE_API_URL}/api/bookings`,
         { room, date, startTime, endTime },
         { headers: { 'x-auth-token': localStorage.getItem('token') } }
       );
