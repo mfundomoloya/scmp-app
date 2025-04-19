@@ -1,108 +1,118 @@
-import { useState, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const Register = () => {
-  const { register } = useContext(AuthContext);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('student');
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'student',
-  });
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
 
-  const { name, email, password, confirmPassword, role } = formData;
-
-  const onChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const onSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
-    try {
-      const result = await register(name, email, password, confirmPassword, role);
-      if (result.success) {
-        setMessage(result.message);
-        // Optional: Redirect to login after a delay
-        setTimeout(() => navigate('/login'), 5000);
-      } else {
-        setError(result.message);
-      }
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+    setError(null);
+    setMessage(null);
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
     }
+
+    const source = axios.CancelToken.source();
+
+    try {
+      console.log('Registering user:', { name, email, role });
+      const response = await axios.post(
+        'http://localhost:5000/api/auth/register',
+        { name, email, password, role },
+        { cancelToken: source.token }
+      );
+      console.log('Registration response:', response.data);
+
+      setMessage(response.data.msg);
+      setTimeout(() => navigate('/login'), 3000);
+    } catch (err) {
+      if (axios.isCancel(err)) return;
+      console.error('Registration error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        url: err.config?.url,
+      });
+      setError(err.response?.data?.msg || 'Registration failed. Please try again.');
+    }
+
+    return () => source.cancel('Request cancelled');
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
         <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
-        {message && <p className="text-green-600 mb-4">{message}</p>}
-        {error && <p className="text-red-600 mb-4">{error}</p>}
-        <form onSubmit={onSubmit}>
+        <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700">Name</label>
+            <label className="block text-gray-700 mb-2" htmlFor="name">Name</label>
             <input
               type="text"
-              name="name"
+              id="name"
               value={name}
-              onChange={onChange}
-              className="w-full p-2 border rounded"
+              onChange={(e) => setName(e.target.value)}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Email</label>
+            <label className="block text-gray-700 mb-2" htmlFor="email">Email</label>
             <input
               type="email"
-              name="email"
+              id="email"
               value={email}
-              onChange={onChange}
-              className="w-full p-2 border rounded"
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Password</label>
+            <label className="block text-gray-700 mb-2" htmlFor="password">Password</label>
             <input
               type="password"
-              name="password"
+              id="password"
               value={password}
-              onChange={onChange}
-              className="w-full p-2 border rounded"
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Confirm Password</label>
+            <label className="block text-gray-700 mb-2" htmlFor="confirmPassword">Confirm Password</label>
             <input
               type="password"
-              name="confirmPassword"
+              id="confirmPassword"
               value={confirmPassword}
-              onChange={onChange}
-              className="w-full p-2 border rounded"
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Role</label>
+          <div className="mb-6">
+            <label className="block text-gray-700 mb-2" htmlFor="role">Role</label>
             <select
-              name="role"
+              id="role"
               value={role}
-              onChange={onChange}
-              className="w-full p-2 border rounded"
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="student">Student</option>
-              <option value="staff">Staff</option>
+              <option value="lecturer">Lecturer</option>
               <option value="admin">Admin</option>
             </select>
           </div>
+          {error && <p className="text-red-600 mb-4">{error}</p>}
+          {message && <p className="text-green-600 mb-4">{message}</p>}
           <button
             type="submit"
             className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"

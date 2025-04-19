@@ -17,11 +17,14 @@ export const AuthProvider = ({ children }) => {
         console.log('Decoded JWT:', decoded);
         setUser({
           id: decoded.user.id,
+          name: decoded.user.name,
+          email: decoded.user.email,
           role: decoded.user.role,
         });
       } catch (err) {
         console.error('JWT decode error:', err);
         localStorage.removeItem('token');
+        setUser(null);
       }
     }
     setLoading(false);
@@ -30,9 +33,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (token, userData) => {
     console.log('AuthContext login:', { userData });
     localStorage.setItem('token', token);
-    if (!userData.role) {
-      console.error('Role missing in userData:', userData);
-      throw new Error('User role not provided');
+    if (!userData.role || !userData.name) {
+      console.error('Missing role or name in userData:', userData);
+      throw new Error('User role or name not provided');
     }
     setUser({
       id: userData.id,

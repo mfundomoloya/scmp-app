@@ -1,24 +1,26 @@
+import { Link } from 'react-router-dom';
+
 const Footer = () => {
-    return (
-      <footer className="bg-gray-800 text-white py-6">
-        <div className="container mx-auto px-4 text-center">
-          <ul className="flex justify-center space-x-6 mb-4">
+  return (
+    <footer className="bg-gray-800 text-white p-4 mt-auto">
+      <div className="container mx-auto flex flex-col items-center space-y-2">
+        <nav>
+          <ul className="flex space-x-4">
             <li>
-              <a href="/about" className="hover:text-blue-300">About</a>
+              <Link to="/about" className="hover:underline">About</Link>
             </li>
             <li>
-              <a href="/contact" className="hover:text-blue-300">Contact</a>
+              <Link to="/contact" className="hover:underline">Contact</Link>
             </li>
             <li>
-              <a href="/privacy" className="hover:text-blue-300">Privacy Policy</a>
+              <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
             </li>
           </ul>
-          <p className="text-sm">
-            &copy; {new Date().getFullYear()} Smart Campus Services Portal. All rights reserved.
-          </p>
-        </div>
-      </footer>
-    );
-  };
-  
-  export default Footer;
+        </nav>
+        <p>© 2025 Smart Campus Services Portal. All rights reserved.</p>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
