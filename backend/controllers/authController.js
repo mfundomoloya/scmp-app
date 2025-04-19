@@ -136,6 +136,7 @@ const login = async (req, res) => {
     const payload = { user: { id: user._id, role: user.role } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
+    console.log('Login response sent:', { token, user: { id: user._id, name: user.name, email, role: user.role } });
     res.json({ token, user: { id: user._id, name: user.name, email, role: user.role } });
   } catch (err) {
     console.error('Login error:', err);
