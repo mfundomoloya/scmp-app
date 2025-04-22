@@ -18,9 +18,13 @@ import ResetPassword from './components/ResetPassword';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useContext(AuthContext);
+  console.log('ProtectedRoute:', { role, user: user ? { id: user.id, role: user.role } : null, loading });
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (role && user.role !== role) return <Navigate to="/" />;
+  if (role && user.role !== role) {
+    console.log(`Access denied: user role ${user.role} does not match required role ${role}`);
+    return <Navigate to="/" />;
+  }
   return children;
 };
 
