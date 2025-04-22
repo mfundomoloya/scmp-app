@@ -1,5 +1,16 @@
 const Booking = require('../models/Booking');
 const { validationResult } = require('express-validator');
+const User = require('../models/User');
+const nodemailer = require('nodemailer');
+
+//transporter for email notifications
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 // Create a booking
 const createBooking = async (req, res) => {
@@ -76,7 +87,7 @@ const cancelBooking = async (req, res) => {
 
     booking.status = 'cancelled';
     await booking.save();
-    console.log('Booking cancelled:', booking);
+    console.log('Booking cancelled:', { id: booking_id});
 
     res.json({ msg: 'Booking cancelled successfully' });
   } catch (err) {
@@ -125,4 +136,41 @@ const approveBooking = async (req, res) => {
     }
 };
 
-module.exports = { createBooking, getBookings, cancelBooking, approveBooking };
+//Updating a booking
+const updateStatus = async (req, res) => {
+  const { status } = req.body;
+  try {
+    console.log('Updating booking status:', { id: req.params.id, status, userId: req.user.id });
+    if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ msg: 'Invalid status' });
+    }
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      console.log('Booking not found:', { id: req.params.id });
+      return res.status(404).json({ msg: 'Booking not found' });
+    }
+    if (req.user.role !== 'admin') {
+      console.log('Unauthorized status update attempt:', { userId: req.user.id, role: req.user.role });
+      return res.status(403).json({ msg: 'Only admins can update booking status' });
+    }
+    booking.status = status;
+    await booking.save();
+    console.log('Booking status updated:', { id: booking._id, status });
+
+    // Send notification
+    const user = await User.findById(booking.userId);
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: `Booking Status Updated to ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been updated to ${status}.`,
+    });
+
+    res.json(booking);
+  } catch (err) {
+    console.error('Update status error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+module.exports = { createBooking, getBookings, cancelBooking, approveBooking, updateStatus };
