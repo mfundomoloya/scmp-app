@@ -48,16 +48,9 @@ const createBooking = async (req, res) => {
 // List bookings
 const getBookings = async (req, res) => {
   try {
-    console.log('Fetching bookings for:', { userId: req.user.id, role: req.user.role });
-
-    let bookings;
-    if (req.user.role === 'admin') {
-      bookings = await Booking.find().populate('userId', 'name email role');
-    } else {
-      bookings = await Booking.find({ userId: req.user.id });
-    }
-
-    console.log('Bookings fetched:', bookings.length);
+    const bookings = req.user.role === 'admin' 
+      ? await Booking.find().populate('userId', 'name email')
+      : await Booking.find({ userId: req.user.id });
     res.json(bookings);
   } catch (err) {
     console.error('Get bookings error:', err);
