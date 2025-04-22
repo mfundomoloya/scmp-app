@@ -24,7 +24,7 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api/issues', issuesRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api', bookingsRoutes);
+app.use('/api/bookings', bookingsRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/announcements', announcementsRoutes);
 

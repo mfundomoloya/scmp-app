@@ -92,4 +92,44 @@ const cancelBooking = async (req, res) => {
   }
 };
 
-module.exports = { createBooking, getBookings, cancelBooking };
+//Approve a booking
+const approveBooking = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    console.log('Approving booking:', { id: req.params.id, userId: req.user.id });
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      console.log('Booking not found:', { id: req.params.id });
+      return res.status(404).json({ msg: 'Booking not found' });
+    }
+    if (req.user.role !== 'admin') {
+      console.log('Unauthorized approval attempt:', { userId: req.user.id, role: req.user.role });
+      return res.status(403).json({ msg: 'Only admins can approve bookings' });
+    }
+    booking.status = 'confirmed';
+    await booking.save();
+    console.log('Booking approved:', { id: booking._id, status: booking.status });
+    res.json(booking);
+  } catch (err) {
+    console.error('Approve booking error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+
+    // Check for overlapping confirmed bookings
+    const existingBooking = await Booking.findOne({
+      room: booking.room,
+      date: booking.date,
+      $or: [
+        { startTime: { $lte: booking.endTime }, endTime: { $gte: booking.startTime } },
+      ],
+      status: 'confirmed',
+      _id: { $ne: booking._id },
+    });
+
+    if (existingBooking) {
+      return res.status(400).json({ msg: 'Room is already booked for this time slot' });
+    }
+};
+
+module.exports = { createBooking, getBookings, cancelBooking, approveBooking };
