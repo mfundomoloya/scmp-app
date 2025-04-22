@@ -46,22 +46,28 @@ const BookingList = ({ refresh }) => {
     }
   };
 
-  const handleApprove = async (id) => {
-    try {
-      console.log('Approving booking:', id);
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/bookings/${id}/approve`,
-        {},
-        { headers: { 'x-auth-token': localStorage.getItem('token') } }
-      );
-      console.log('Booking approved:', id);
-      fetchBookings();
-    } catch (err) {
-      console.error('Approve booking error:', {
-        message: err.message,
-        response: err.response?.data,
-      });
-      setError(err.response?.data?.msg || 'Failed to approve booking');
+  //this handles approvals and status changes
+  const handleStatusChange = async (id, status) => {
+    if (window.confirm(`Change status to ${status}?`)) {
+      setLoading(true);
+      try {
+        console.log('Updating booking status:', { id, status });
+        await axios.put(
+          `${import.meta.env.VITE_API_URL}/api/bookings/${id}/status`,
+          { status },
+          { headers: { 'x-auth-token': localStorage.getItem('token') } }
+        );
+        console.log('Booking status updated:', { id, status });
+        fetchBookings();
+      } catch (err) {
+        console.error('Update status error:', {
+          message: err.message,
+          response: err.response?.data,
+        });
+        setError(err.response?.data?.msg || 'Failed to update booking status');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -110,24 +116,28 @@ const BookingList = ({ refresh }) => {
                       <td className="border border-gray-300 px-4 py-2">{booking.userId?.email || 'Unknown'}</td>
                     </>
                   )}
-                  <td className="border border-gray-300 px-4 py-2">
-                    {booking.status !== 'canceled' && (isAdmin || booking.userId === user.id || booking.userId._id === user.id) && (
-                      <button
-                        className="bg-red-500 text-white px-2 py-1 rounded mr-2 hover:bg-red-600 disabled:opacity-50"
-                        onClick={() => handleCancel(booking._id)}
+                 <td className="border border-gray-300 px-4 py-2">
+                    {isAdmin ? (
+                      <select
+                        value={booking.status}
+                        onChange={(e) => handleStatusChange(booking._id, e.target.value)}
+                        className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         disabled={loading}
                       >
-                        Cancel
-                      </button>
-                    )}
-                    {isAdmin && booking.status === 'pending' && (
-                      <button
-                        className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 disabled:opacity-50"
-                        onClick={() => handleApprove(booking._id)}
-                        disabled={loading}
-                      >
-                        Approve
-                      </button>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="cancelled">Canceled</option>
+                      </select>
+                    ) : (
+                      booking.status !== 'cancelled' && (booking.userId === user.id || booking.userId?._id === user.id) && (
+                        <button
+                          className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 disabled:opacity-50"
+                          onClick={() => handleCancel(booking._id)}
+                          disabled={loading}
+                        >
+                          Cancel
+                        </button>
+                      )
                     )}
                   </td>
                 </tr>
