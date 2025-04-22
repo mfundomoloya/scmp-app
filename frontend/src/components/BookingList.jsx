@@ -6,6 +6,7 @@ const BookingList = ({ refresh }) => {
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState(null);
   const { user } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
 
   const fetchBookings = async () => {
     try {
@@ -64,27 +65,76 @@ const BookingList = ({ refresh }) => {
     }
   };
 
+  const isAdmin = user.role === 'admin';
+  const title = isAdmin ? 'Bookings' : 'My Bookings';
+
   return (
-    <div>
-      <h2>Your Bookings</h2>
-      {error && <p>{error}</p>}
-      {bookings.length === 0 ? (
+    <div className="p-4">
+      <h2 className="text-2xl font-bold mb-4">{title}</h2>
+      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {loading && <p className="text-gray-600 mb-4">Loading bookings...</p>}
+      {bookings.length === 0 && !loading ? (
         <p>No bookings found</p>
       ) : (
-        <ul>
-          {bookings.map((booking) => (
-            <li key={booking._id}>
-              Room: {booking.room}, Date: {new Date(booking.date).toLocaleDateString()},
-              Time: {booking.startTime} - {booking.endTime}, Status: {booking.status}
-              {(booking.status !== 'cancelled' && (user.role === 'admin' || booking.userId === user.id)) && (
-                <button onClick={() => handleCancel(booking._id)}>Cancel</button>
-              )}
-              {user.role === 'admin' && booking.status === 'pending' && (
-                <button onClick={() => handleApprove(booking._id)}>Approve</button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-300 px-4 py-2 text-left">Room</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Date</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Time</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
+                {isAdmin && (
+                  <>
+                    <th className="border border-gray-300 px-4 py-2 text-left">Booked By</th>
+                    <th className="border border-gray-300 px-4 py-2 text-left">Email</th>
+                  </>
+                )}
+                <th className="border border-gray-300 px-4 py-2 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((booking) => (
+                <tr key={booking._id} className="hover:bg-gray-50">
+                  <td className="border border-gray-300 px-4 py-2">{booking.room}</td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {new Date(booking.date).toLocaleDateString()}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {booking.startTime} - {booking.endTime}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">{booking.status}</td>
+                  {isAdmin && (
+                    <>
+                      <td className="border border-gray-300 px-4 py-2">{booking.userId?.name || 'Unknown'}</td>
+                      <td className="border border-gray-300 px-4 py-2">{booking.userId?.email || 'Unknown'}</td>
+                    </>
+                  )}
+                  <td className="border border-gray-300 px-4 py-2">
+                    {booking.status !== 'canceled' && (isAdmin || booking.userId === user.id || booking.userId._id === user.id) && (
+                      <button
+                        className="bg-red-500 text-white px-2 py-1 rounded mr-2 hover:bg-red-600 disabled:opacity-50"
+                        onClick={() => handleCancel(booking._id)}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    {isAdmin && booking.status === 'pending' && (
+                      <button
+                        className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 disabled:opacity-50"
+                        onClick={() => handleApprove(booking._id)}
+                        disabled={loading}
+                      >
+                        Approve
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
