@@ -9,7 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const bookingsRoutes = require('./routes/bookingsRoutes');
 const schedulesRoutes = require('./routes/schedulesRoutes');
 const announcementsRoutes = require('./routes/announcementsRoutes');
-
+const notificationRoutes = require('./routes/notification');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/announcements', announcementsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Check for critical environment variables
 if (!process.env.MONGODB_URI) {
