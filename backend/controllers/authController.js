@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 // Configure nodemailer for Gmail
 console.log('Nodemailer config:', {
@@ -105,10 +106,13 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('Validation errors:', errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
+  //logging the user details when logging in
   const { email, password } = req.body;
+  console.log('Login attempt:', { email, passwordLength: password.length });
 
   try {
     console.log('Logging in user:', { email });
@@ -120,26 +124,49 @@ const login = async (req, res) => {
     }
     console.log('User found for login:', { email: user.email, isVerified: user.isVerified });
 
-    // Check if verified
-    if (!user.isVerified) {
-      return res.status(400).json({ msg: 'Please verify your email before logging in' });
-    }
-
     // Verify password
-    console.log('Checking password for:', user.email);
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password check:', { isMatch, storedHashLength: user.password.length });
     if (!isMatch) {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
-    // Generate JWT
-    const payload = { user: { id: user._id, role: user.role } };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Check if verified
+    if (!user.isVerified) {
+      console.log('User not verified:', { email });
+      return res.status(400).json({ msg: 'Please verify your email' });
+    }
 
-    console.log('Login response sent:', { token, user: { id: user._id, name: user.name, email, role: user.role } });
-    res.json({ token, user: { id: user._id, name: user.name, email, role: user.role } });
+
+    // Generate JWT
+    const payload = { 
+      user: { 
+              id: user._id, 
+              name: user.name,
+              email: user.email,
+              role: user.role 
+            }, 
+          };
+
+          const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+          console.log('Login success:', { email, role: user.role, token: token.substring(0, 10) + '...' });
+          res.json({ token, user: payload.user });
+        } catch (err) {
+          console.error('Login error:', err);
+          res.status(500).json({ msg: 'Server error' });
+        }
+};
+
+const getMe = async (req, res) => {
+  try {
+    console.log('Fetching user:', { userId: req.user.id });
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    res.json({ id: user._id, name: user.name, email: user.email, role: user.role });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('Get user error:', err);
     res.status(500).json({ msg: 'Server error' });
   }
 };
@@ -259,4 +286,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, verifyEmail, forgotPassword, resetPassword }; 
+module.exports = { register, login, verifyEmail, forgotPassword, resetPassword, getMe }; 
