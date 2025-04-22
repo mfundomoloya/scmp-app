@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from './AuthContext';
+import { io } from 'socket.io-client';
 
 export const NotificationContext = createContext();
 
@@ -8,11 +9,12 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const { user } = useContext(AuthContext);
 
+  // Fetch initial notifications
   const fetchNotifications = async () => {
     if (!user) {
-        setNotifications([]); // Clear notifications if no user
-        return;
-      }
+      setNotifications([]);
+      return;
+    }
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
@@ -23,15 +25,27 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
+  // WebSocket setup
   useEffect(() => {
-    if (user) {
-        fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
-        return () => clearInterval(interval);
-      } else {
-        setNotifications([]); // Clear notifications on logout
-      }
-    }, [user]);
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+
+    // Initial fetch
+    fetchNotifications();
+
+    // WebSocket connection
+    const socket = io(import.meta.env.VITE_API_URL);
+    socket.emit('join', user.id);
+    socket.on('notification', (notification) => {
+      setNotifications((prev) => [notification, ...prev]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
 
   const markAsRead = async (id) => {
     try {

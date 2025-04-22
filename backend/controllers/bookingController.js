@@ -1,10 +1,8 @@
 const Booking = require('../models/Booking');
-const Notification = require('../models/Notification');
-const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const nodemailer = require('nodemailer');
 
-//transporter for email notifications
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -13,7 +11,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Create a booking
 const createBooking = async (req, res) => {
   const { room, date, startTime, endTime } = req.body;
   try {
@@ -62,10 +59,10 @@ const createBooking = async (req, res) => {
   }
 };
 
-// List bookings
 const getBookings = async (req, res) => {
   try {
-    const bookings = req.user.role === 'admin' 
+    console.log('Fetching bookings for:', { userId: req.user.id, role: req.user.role });
+    const bookings = req.user.role === 'admin'
       ? await Booking.find().populate('userId', 'name email')
       : await Booking.find({ userId: req.user.id });
     res.json(bookings);
@@ -75,7 +72,6 @@ const getBookings = async (req, res) => {
   }
 };
 
-// Cancel a booking
 const cancelBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -106,6 +102,10 @@ const cancelBooking = async (req, res) => {
     });
     await notification.save();
 
+    // Emit WebSocket notification
+    const io = req.app.get('io');
+    io.to(booking.userId.toString()).emit('notification', notification);
+
     res.json(booking);
   } catch (err) {
     console.error('Cancel booking error:', err);
@@ -113,7 +113,54 @@ const cancelBooking = async (req, res) => {
   }
 };
 
-//Approve a booking
+const updateStatus = async (req, res) => {
+  const { status } = req.body;
+  try {
+    console.log('Updating booking status:', { id: req.params.id, status, userId: req.user.id });
+    if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ msg: 'Invalid status' });
+    }
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      console.log('Booking not found:', { id: req.params.id });
+      return res.status(404).json({ msg: 'Booking not found' });
+    }
+    if (req.user.role !== 'admin') {
+      console.log('Unauthorized status update attempt:', { userId: req.user.id, role: req.user.role });
+      return res.status(403).json({ msg: 'Only admins can update booking status' });
+    }
+    booking.status = status;
+    await booking.save();
+    console.log('Booking status updated:', { id: booking._id, status });
+
+    // Send email notification
+    const user = await User.findById(booking.userId);
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: `Booking Status Updated to ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been updated to ${status}.`,
+    });
+
+    // Create in-app notification
+    const notification = new Notification({
+      userId: booking.userId,
+      message: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been updated to ${status}.`,
+      read: false,
+    });
+    await notification.save();
+
+    // Emit WebSocket notification
+    const io = req.app.get('io');
+    io.to(booking.userId.toString()).emit('notification', notification);
+
+    res.json(booking);
+  } catch (err) {
+    console.error('Update status error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
 const approveBooking = async (req, res) => {
   try {
     console.log('Approving booking:', { id: req.params.id, userId: req.user.id });
@@ -147,6 +194,10 @@ const approveBooking = async (req, res) => {
     });
     await notification.save();
 
+    // Emit WebSocket notification
+    const io = req.app.get('io');
+    io.to(booking.userId.toString()).emit('notification', notification);
+
     res.json(booking);
   } catch (err) {
     console.error('Approve booking error:', err);
@@ -154,49 +205,4 @@ const approveBooking = async (req, res) => {
   }
 };
 
-//Updating a booking
-const updateStatus = async (req, res) => {
-  const { status } = req.body;
-  try {
-    console.log('Updating booking status:', { id: req.params.id, status, userId: req.user.id });
-    if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
-      return res.status(400).json({ msg: 'Invalid status' });
-    }
-    const booking = await Booking.findById(req.params.id);
-    if (!booking) {
-      console.log('Booking not found:', { id: req.params.id });
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-    if (req.user.role !== 'admin') {
-      console.log('Unauthorized status update attempt:', { userId: req.user.id, role: req.user.role });
-      return res.status(403).json({ msg: 'Only admins can update booking status' });
-    }
-    booking.status = status;
-    await booking.save();
-    console.log('Booking status updated:', { id: booking._id, status });
-
-    // Send email notification
-    const user = await User.findById(booking.userId);
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: `Booking Status Updated to ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-      text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been updated to ${status}.`,
-    });
-
-    //in-app notification
-    const notification = new Notification({
-      userId: booking.userId,
-      message: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been updated to ${status}.`,
-      read: false,
-    });
-    await notification.save();
-
-    res.json(booking);
-  } catch (err) {
-    console.error('Update status error:', err);
-    res.status(500).json({ msg: 'Server error' });
-  }
-};
-
-module.exports = { createBooking, getBookings, cancelBooking, approveBooking, updateStatus };
+module.exports = { createBooking, getBookings, cancelBooking, updateStatus, approveBooking };
