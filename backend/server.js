@@ -2,6 +2,9 @@ require('dotenv').config({ path: './.env' });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
+const rateLimit = require('express-rate-limit');
 const bodyParser = require('body-parser');
 const userRoutes = require('./routes/userRoutes');
 const issuesRoutes = require('./routes/issuesRoutes');
@@ -12,13 +15,26 @@ const announcementsRoutes = require('./routes/announcementsRoutes');
 const notificationRoutes = require('./routes/notification');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173', // Frontend URL (Vite default)
+    methods: ['GET', 'POST'],
+  },
+});
 const PORT = process.env.PORT || 5000;
 
 
 // Middleware
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(bodyParser.json());
-app.use(express.json());
+app.use(express.json({ extended: false }));
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+  })
+);
 
 //using the routes
 app.use('/api/users', userRoutes);
@@ -28,6 +44,22 @@ app.use('/api/bookings', bookingsRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// Socket.IO setup
+io.on('connection', (socket) => {
+  console.log('Socket connected:', socket.id);
+  socket.on('join', (userId) => {
+    console.log('User joined room:', userId);
+    socket.join(userId);
+  });
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected:', socket.id);
+  });
+});
+
+// Make io accessible to controllers
+app.set('io', io);
+
 
 // Check for critical environment variables
 if (!process.env.MONGODB_URI) {
