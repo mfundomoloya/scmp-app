@@ -1,4 +1,5 @@
 const Booking = require('../models/Booking');
+const Notification = require('../models/Notification');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
@@ -14,42 +15,47 @@ const transporter = nodemailer.createTransport({
 
 // Create a booking
 const createBooking = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
   const { room, date, startTime, endTime } = req.body;
-
   try {
-    console.log('Creating booking:', { userId: req.user.id, room, date, startTime, endTime });
+    if (!room || !date || !startTime || !endTime) {
+      return res.status(400).json({ msg: 'All fields are required' });
+    }
 
-    // Check for clashing bookings
-    const existingBooking = await Booking.findOne({
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate)) {
+      return res.status(400).json({ msg: 'Invalid date format' });
+    }
+
+    // Check for overlapping bookings
+    const overlappingBookings = await Booking.find({
       room,
-      date: new Date(date),
+      date: {
+        $gte: new Date(parsedDate.setHours(0, 0, 0, 0)),
+        $lte: new Date(parsedDate.setHours(23, 59, 59, 999)),
+      },
+      status: { $ne: 'cancelled' },
       $or: [
         { startTime: { $lte: endTime }, endTime: { $gte: startTime } },
+        { startTime: { $gte: startTime }, endTime: { $lte: endTime } },
+        { startTime: { $lte: startTime }, endTime: { $gte: endTime } },
       ],
-      status: { $ne: 'cancelled' },
     });
 
-    if (existingBooking) {
+    if (overlappingBookings.length > 0) {
       return res.status(400).json({ msg: 'Room is already booked for this time slot' });
     }
 
     const booking = new Booking({
       userId: req.user.id,
       room,
-      date: new Date(date),
+      date: parsedDate,
       startTime,
       endTime,
+      status: 'pending',
     });
-
     await booking.save();
-    console.log('Booking created:', booking);
-
-    res.json({ msg: 'Booking created successfully', booking });
+    console.log('Booking created:', { id: booking._id });
+    res.status(201).json(booking);
   } catch (err) {
     console.error('Create booking error:', err);
     res.status(500).json({ msg: 'Server error' });
@@ -71,25 +77,36 @@ const getBookings = async (req, res) => {
 
 // Cancel a booking
 const cancelBooking = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    console.log('Cancelling booking:', { id, userId: req.user.id });
-
-    const booking = await Booking.findById(id);
+    const booking = await Booking.findById(req.params.id);
     if (!booking) {
       return res.status(404).json({ msg: 'Booking not found' });
     }
-
     if (booking.userId.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ msg: 'Unauthorized' });
     }
-
     booking.status = 'cancelled';
     await booking.save();
-    console.log('Booking cancelled:', { id: booking_id});
+    console.log('Booking cancelled:', { id: booking._id });
 
-    res.json({ msg: 'Booking cancelled successfully' });
+    // Send email notification
+    const user = await User.findById(booking.userId);
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Booking Cancelled',
+      text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been cancelled.`,
+    });
+
+    // Create in-app notification
+    const notification = new Notification({
+      userId: booking.userId,
+      message: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been cancelled.`,
+      read: false,
+    });
+    await notification.save();
+
+    res.json(booking);
   } catch (err) {
     console.error('Cancel booking error:', err);
     res.status(500).json({ msg: 'Server error' });
@@ -98,8 +115,6 @@ const cancelBooking = async (req, res) => {
 
 //Approve a booking
 const approveBooking = async (req, res) => {
-  const { id } = req.params;
-
   try {
     console.log('Approving booking:', { id: req.params.id, userId: req.user.id });
     const booking = await Booking.findById(req.params.id);
@@ -114,26 +129,29 @@ const approveBooking = async (req, res) => {
     booking.status = 'confirmed';
     await booking.save();
     console.log('Booking approved:', { id: booking._id, status: booking.status });
+
+    // Send email notification
+    const user = await User.findById(booking.userId);
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Booking Approved',
+      text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been approved.`,
+    });
+
+    // Create in-app notification
+    const notification = new Notification({
+      userId: booking.userId,
+      message: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been approved.`,
+      read: false,
+    });
+    await notification.save();
+
     res.json(booking);
   } catch (err) {
     console.error('Approve booking error:', err);
     res.status(500).json({ msg: 'Server error' });
   }
-
-    // Check for overlapping confirmed bookings
-    const existingBooking = await Booking.findOne({
-      room: booking.room,
-      date: booking.date,
-      $or: [
-        { startTime: { $lte: booking.endTime }, endTime: { $gte: booking.startTime } },
-      ],
-      status: 'confirmed',
-      _id: { $ne: booking._id },
-    });
-
-    if (existingBooking) {
-      return res.status(400).json({ msg: 'Room is already booked for this time slot' });
-    }
 };
 
 //Updating a booking
@@ -157,7 +175,7 @@ const updateStatus = async (req, res) => {
     await booking.save();
     console.log('Booking status updated:', { id: booking._id, status });
 
-    // Send notification
+    // Send email notification
     const user = await User.findById(booking.userId);
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -165,6 +183,14 @@ const updateStatus = async (req, res) => {
       subject: `Booking Status Updated to ${status.charAt(0).toUpperCase() + status.slice(1)}`,
       text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been updated to ${status}.`,
     });
+
+    //in-app notification
+    const notification = new Notification({
+      userId: booking.userId,
+      message: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been updated to ${status}.`,
+      read: false,
+    });
+    await notification.save();
 
     res.json(booking);
   } catch (err) {

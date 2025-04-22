@@ -9,19 +9,23 @@ const BookingList = ({ refresh }) => {
   const [loading, setLoading] = useState(false);
 
   const fetchBookings = async () => {
+    setLoading(true);
     try {
-      console.log('Fetching bookings');
+      console.log('Fetching bookings for user:', { id: user.id, role: user.role });
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/bookings`, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       console.log('Bookings fetched:', response.data);
       setBookings(response.data);
+      setError(null);
     } catch (err) {
       console.error('Fetch bookings error:', {
         message: err.message,
         response: err.response?.data,
       });
       setError(err.response?.data?.msg || 'Failed to fetch bookings');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,6 +34,7 @@ const BookingList = ({ refresh }) => {
   }, [refresh]);
 
   const handleCancel = async (id) => {
+    setLoading(true);
     try {
       console.log('Cancelling booking:', id);
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/bookings/${id}`, {
@@ -43,6 +48,8 @@ const BookingList = ({ refresh }) => {
         response: err.response?.data,
       });
       setError(err.response?.data?.msg || 'Failed to cancel booking');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -126,7 +133,7 @@ const BookingList = ({ refresh }) => {
                       >
                         <option value="pending">Pending</option>
                         <option value="confirmed">Confirmed</option>
-                        <option value="cancelled">Canceled</option>
+                        <option value="cancelled">Cancelled</option>
                       </select>
                     ) : (
                       booking.status !== 'cancelled' && (booking.userId === user.id || booking.userId?._id === user.id) && (

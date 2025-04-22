@@ -15,6 +15,8 @@ import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import { NotificationProvider } from './context/NotificationContext';
+import NotificationToast from './components/NotificationToast';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useContext(AuthContext);
@@ -30,7 +32,9 @@ const ProtectedRoute = ({ children, role }) => {
 
 function App() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <NotificationProvider>
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      <NotificationToast />
       <Header />
       <main className="flex-grow">
         <Routes>
@@ -72,7 +76,8 @@ function App() {
       </main>
       <Footer />
     </div>
-  );
+  </NotificationProvider>
+);
 }
 
 export default App;
