@@ -10,7 +10,7 @@ const BookingList = ({ refresh }) => {
   const fetchBookings = async () => {
     try {
       console.log('Fetching bookings');
-      const response = await axios.get('http://localhost:5000/api/bookings', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/bookings`, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       console.log('Bookings fetched:', response.data);

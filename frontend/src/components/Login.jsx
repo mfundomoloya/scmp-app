@@ -1,37 +1,25 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     try {
-      console.log('Logging in:', { email });
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-        email,
-        password,
-      });
-      console.log('Login response:', response.data);
-
-      const { token, user } = response.data;
-      if (!user.role) {
-        console.error('Role missing in response:', user);
-        throw new Error('User role not provided');
-      }
-
-      await login(token, user);
-      const redirectTo = user.role === 'student' ? '/student' : user.role === 'admin' ? '/admin' : '/';
-      console.log('Redirecting to:', redirectTo);
-      navigate(redirectTo);
+      const normalizedEmail = email.trim().toLowerCase();
+      console.log('Submitting login:', { email: normalizedEmail, passwordLength: password.length });
+      await login(normalizedEmail, password);
+      console.log('Login successful:', { email: normalizedEmail });
     } catch (err) {
       console.error('Login error:', {
         message: err.message,
@@ -39,15 +27,17 @@ const Login = () => {
         status: err.response?.status,
       });
       setError(err.response?.data?.msg || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div>
-      <div >
+      <div>
         <h2>Login</h2>
         <form onSubmit={handleSubmit}>
-          <div >
+          <div>
             <label htmlFor="email">Email</label>
             <input
               type="email"
@@ -69,14 +59,10 @@ const Login = () => {
           </div>
           {error && <p className="text-red-600 mb-4">{error}</p>}
           <div>
-            <Link to="/forgot-password">
-              Forgot Password?
-            </Link>
+            <Link to="/forgot-password">Forgot Password?</Link>
           </div>
-          <button
-            type="submit"
-          >
-            Login
+          <button type="submit" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
       </div>
