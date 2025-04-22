@@ -87,3 +87,6 @@ const resetAdminPassword = async (email, newPassword) => {
 
 // Run the script
 resetAdminPassword('admin1@scmp.com', '@dmin25');
+
+
+///p@ss123 mfundomoloya19@gmail.com

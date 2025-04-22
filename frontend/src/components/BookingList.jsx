@@ -45,6 +45,25 @@ const BookingList = ({ refresh }) => {
     }
   };
 
+  const handleApprove = async (id) => {
+    try {
+      console.log('Approving booking:', id);
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/bookings/${id}/approve`,
+        {},
+        { headers: { 'x-auth-token': localStorage.getItem('token') } }
+      );
+      console.log('Booking approved:', id);
+      fetchBookings();
+    } catch (err) {
+      console.error('Approve booking error:', {
+        message: err.message,
+        response: err.response?.data,
+      });
+      setError(err.response?.data?.msg || 'Failed to approve booking');
+    }
+  };
+
   return (
     <div>
       <h2>Your Bookings</h2>
@@ -59,6 +78,9 @@ const BookingList = ({ refresh }) => {
               Time: {booking.startTime} - {booking.endTime}, Status: {booking.status}
               {(booking.status !== 'cancelled' && (user.role === 'admin' || booking.userId === user.id)) && (
                 <button onClick={() => handleCancel(booking._id)}>Cancel</button>
+              )}
+              {user.role === 'admin' && booking.status === 'pending' && (
+                <button onClick={() => handleApprove(booking._id)}>Approve</button>
               )}
             </li>
           ))}
