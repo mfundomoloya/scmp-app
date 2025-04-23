@@ -14,6 +14,8 @@ const BookingList = ({ refresh }) => {
   const [error, setError] = useState(null);
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(null);
+  const [modalAction, setModalAction] = useState(null);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -63,28 +65,51 @@ const BookingList = ({ refresh }) => {
   }, [user, refresh]);
 
   //this handles approvals and status changes
+  const handleCancel = async (id) => {
+    setShowModal(id);
+    setModalAction({ type: 'cancel' });
+  };
+
   const handleStatusChange = async (id, status) => {
-    if (window.confirm(`Change status to ${status}?`)) {
-      setLoading(true);
-      try {
-        console.log('Updating booking status:', { id, status });
+    setShowModal(id);
+    setModalAction({ type: 'status', status });
+  };
+
+  const confirmAction = async () => {
+    setLoading(true);
+    try {
+      if (modalAction.type === 'cancel') {
+        console.log('Cancelling booking:', showModal);
+        await axios.delete(`${import.meta.env.VITE_API_URL}/api/bookings/${showModal}`, {
+          headers: { 'x-auth-token': localStorage.getItem('token') },
+        });
+        console.log('Booking cancelled:', showModal);
+      } else if (modalAction.type === 'status') {
+        console.log('Updating booking status:', { id: showModal, status: modalAction.status });
         await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/bookings/${id}/status`,
-          { status },
+          `${import.meta.env.VITE_API_URL}/api/bookings/${showModal}/status`,
+          { status: modalAction.status },
           { headers: { 'x-auth-token': localStorage.getItem('token') } }
         );
-        console.log('Booking status updated:', { id, status });
-        fetchBookings();
-      } catch (err) {
-        console.error('Update status error:', {
-          message: err.message,
-          response: err.response?.data,
-        });
-        setError(err.response?.data?.msg || 'Failed to update booking status');
-      } finally {
-        setLoading(false);
+        console.log('Booking status updated:', { id: showModal, status: modalAction.status });
       }
+      fetchBookings();
+    } catch (err) {
+      console.error(`${modalAction.type === 'cancel' ? 'Cancel booking' : 'Update status'} error:`, {
+        message: err.message,
+        response: err.response?.data,
+      });
+      setError(err.response?.data?.msg || `Failed to ${modalAction.type === 'cancel' ? 'cancel booking' : 'update status'}`);
+    } finally {
+      setLoading(false);
+      setShowModal(null);
+      setModalAction(null);
     }
+  };
+
+  const closeModal = () => {
+    setShowModal(null);
+    setModalAction(null);
   };
 
   const handleFilterChange = (e) => {
@@ -227,7 +252,35 @@ const BookingList = ({ refresh }) => {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+        </div>
+      )}
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <p className="mb-4 text-gray-800">
+              {modalAction.type === 'cancel'
+                ? 'Are you sure you want to cancel this booking?'
+                : `Change status to ${modalAction.status}?`}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={closeModal}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                disabled={loading}
+              >
+                No
+              </button>
+              <button
+                onClick={confirmAction}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                disabled={loading}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

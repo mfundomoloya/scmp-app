@@ -72,10 +72,15 @@ const Header = () => {
                           ) : (
                             notifications.map((n) => (
                               <div
-                                key={n._id}
-                                className={`p-2 border-b last:border-b-0 ${n.read ? 'opacity-50' : ''}`}
-                              >
-                                <p className="text-sm">{n.message}</p>
+                              key={n._id}
+                              className={`p-2 border-b last:border-b-0 ${n.read ? 'opacity-50' : ''}`}
+                            >
+                              <p className="text-sm">
+                                {n.message}{' '}
+                                <span className="text-xs text-gray-500">
+                                  ({n.createdAt ? new Date(n.createdAt).toLocaleString() : 'No date'})
+                                </span>
+                              </p>
                                 {!n.read && (
                                   <button
                                     onClick={() => markAsRead(n._id)}
