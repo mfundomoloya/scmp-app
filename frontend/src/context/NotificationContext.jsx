@@ -16,9 +16,11 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
     try {
+      console.log('Fetching notifications for user:', user.id);
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
+      console.log('Fetched notifications:', response.data);
       setNotifications(response.data);
     } catch (err) {
       console.error('Fetch notifications error:', err);
@@ -36,13 +38,22 @@ export const NotificationProvider = ({ children }) => {
     fetchNotifications();
 
     // WebSocket connection
-    const socket = io(import.meta.env.VITE_API_URL);
+    const socket = io(import.meta.env.VITE_API_URL, {
+      transports: ['websocket'], // Prefer WebSocket over polling
+      reconnectionAttempts: 5, // Limit reconnection attempts
+      reconnectionDelay: 1000, // Delay between reconnections
+    });
     socket.emit('join', user.id);
     socket.on('notification', (notification) => {
+      console.log('Received notification:', notification);
       setNotifications((prev) => [notification, ...prev]);
+    });
+    socket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err);
     });
 
     return () => {
+      console.log('Disconnecting Socket.IO');
       socket.disconnect();
     };
   }, [user]);

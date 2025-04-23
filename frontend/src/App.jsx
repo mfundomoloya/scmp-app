@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+
 import Home from './pages/Home';
 import StudentDashboard from './pages/StudentDashboard';
 import LecturerDashboard from './pages/LecturerDashboard';
@@ -15,69 +17,66 @@ import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
-import { NotificationProvider } from './context/NotificationContext';
 import NotificationToast from './components/NotificationToast';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useContext(AuthContext);
-  console.log('ProtectedRoute:', { role, user: user ? { id: user.id, role: user.role } : null, loading });
+
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (role && user.role !== role) {
-    console.log(`Access denied: user role ${user.role} does not match required role ${role}`);
-    return <Navigate to="/" />;
-  }
+  if (role && user.role !== role) return <Navigate to="/" />;
+
   return children;
 };
 
 function App() {
   return (
     <NotificationProvider>
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      <NotificationToast />
-      <Header />
-      <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
-          <Route path="/verify-email/:token" element={<VerifyEmail />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route
-            path="/student"
-            element={
-              <ProtectedRoute role="student">
-                <StudentDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/lecturer"
-            element={
-              <ProtectedRoute role="lecturer">
-                <LecturerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute role="admin">
-                <AdminPanel />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
-  </NotificationProvider>
-);
+      <div className="flex flex-col min-h-screen bg-gray-100">
+        <NotificationToast />
+        <Header />
+        <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/verify-email/:token" element={<VerifyEmail />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route
+              path="/student"
+              element={
+                <ProtectedRoute role="student">
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/lecturer"
+              element={
+                <ProtectedRoute role="lecturer">
+                  <LecturerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </NotificationProvider>
+  );
 }
 
 export default App;

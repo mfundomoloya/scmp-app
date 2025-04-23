@@ -9,6 +9,10 @@ const Header = () => {
   const { notifications } = useContext(NotificationContext);
   const navigate = useNavigate();
 
+  // Debug logging
+  console.log('Header: User:', user ? { id: user.id, role: user.role, name: user.name } : null);
+  console.log('Header: Notifications:', notifications);
+
   const handleLogout = () => {
     logout();
     navigate('/login');

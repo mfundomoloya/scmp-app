@@ -29,12 +29,13 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(bodyParser.json());
 app.use(express.json({ extended: false }));
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-  })
-);
+// Apply rate limiter, excluding Socket.IO endpoints
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  skip: (req) => req.path.startsWith('/socket.io/'), // Exclude Socket.IO
+});
+app.use(limiter);
 
 //using the routes
 app.use('/api/users', userRoutes);
@@ -89,6 +90,6 @@ app.get('/', (req, res) => {
     res.send('Welcome to the Smart Campus Services Portal API');
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
