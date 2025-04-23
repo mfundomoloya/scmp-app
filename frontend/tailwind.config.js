@@ -1,7 +1,8 @@
 /** @type {import('tailwindcss').Config} */
-export default {
-    content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-    theme: {    colors: {
+module.exports = {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    colors: {
       transparent: 'transparent',
       current: 'currentColor',
       'white': '#ffffff',
@@ -14,8 +15,8 @@ export default {
       'bermuda': '#78dcca',
       'homepage': '#463f3a',
       'footer' : '#343a40',
-    }, 
-      extend: {},
     },
-    plugins: [],
-  }
+    extend: {},
+  },
+  plugins: [],
+}

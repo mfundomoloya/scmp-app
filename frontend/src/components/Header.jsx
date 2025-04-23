@@ -1,22 +1,42 @@
-import { useContext } from 'react';
+import { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
-import { BellIcon } from '@heroicons/react/24/outline';
 
 const Header = () => {
   const { user, logout } = useContext(AuthContext);
-  const { notifications } = useContext(NotificationContext);
+  const { notifications, markAsRead } = useContext(NotificationContext);
   const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Debug logging
   console.log('Header: User:', user ? { id: user.id, role: user.role, name: user.name } : null);
   console.log('Header: Notifications:', notifications);
+  console.log('Header: Show Notifications:', showNotifications);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  // Toggle dropdown
+  const toggleNotifications = () => {
+    setShowNotifications((prev) => !prev);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <header className="bg-blue-600 text-white p-4 shadow-md">
@@ -32,13 +52,42 @@ const Header = () => {
                   Welcome, <span>{user.name || 'User'}</span>
                 </li>
                 {user.role !== 'admin' && (
-                  <li>
+                  <li ref={dropdownRef}>
                     <div className="relative">
-                      <BellIcon className="h-6 w-6 text-white" />
-                      {notifications.filter((n) => !n.read).length > 0 && (
-                        <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full h-4 w-4 flex items-center justify-center text-xs">
-                          {notifications.filter((n) => !n.read).length}
-                        </span>
+                      <button
+                        onClick={toggleNotifications}
+                        className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-white flex items-center"
+                      >
+                        Notifications
+                        {notifications && notifications.filter((n) => !n.read).length > 0 && (
+                          <span className="ml-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                            {notifications.filter((n) => !n.read).length}
+                          </span>
+                        )}
+                      </button>
+                      {showNotifications && (
+                        <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
+                          {notifications && notifications.length === 0 ? (
+                            <p className="text-gray-600">No notifications</p>
+                          ) : (
+                            notifications.map((n) => (
+                              <div
+                                key={n._id}
+                                className={`p-2 border-b last:border-b-0 ${n.read ? 'opacity-50' : ''}`}
+                              >
+                                <p className="text-sm">{n.message}</p>
+                                {!n.read && (
+                                  <button
+                                    onClick={() => markAsRead(n._id)}
+                                    className="mt-1 text-blue-500 hover:text-blue-600 text-xs"
+                                  >
+                                    Mark as Read
+                                  </button>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
                       )}
                     </div>
                   </li>
