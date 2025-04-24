@@ -25,6 +25,11 @@ const Header = () => {
     setShowNotifications((prev) => !prev);
   };
 
+  const handleBookingsClick = () => {
+    console.log('Bookings link clicked, navigating to /bookings');
+    navigate('/bookings'); // Fallback navigation
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -47,31 +52,41 @@ const Header = () => {
         <nav>
           <ul className="list-none flex items-center space-x-4">
             {user ? (
+            <>
+            <li>
+              Welcome, <span>{user.name || 'User'}</span>
+            </li>
+            {user.role !== 'admin' && (
               <>
                 <li>
-                  Welcome, <span>{user.name || 'User'}</span>
+                  <Link
+                    to="/bookings"
+                    onClick={handleBookingsClick}
+                    className="text-white no-underline hover:underline hover:text-blue-300"
+                  >
+                    Bookings
+                  </Link>
                 </li>
-                {user.role !== 'admin' && (
-                  <li ref={dropdownRef}>
-                    <div className="relative">
-                      <button
-                        onClick={toggleNotifications}
-                        className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-white flex items-center"
-                      >
-                        Notifications
-                        {notifications && notifications.filter((n) => !n.read).length > 0 && (
-                          <span className="ml-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                            {notifications.filter((n) => !n.read).length}
-                          </span>
-                        )}
-                      </button>
-                      {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
-                          {notifications && notifications.length === 0 ? (
-                            <p className="text-gray-600">No notifications</p>
-                          ) : (
-                            notifications.map((n) => (
-                              <div
+                <li ref={dropdownRef}>
+                  <div className="relative">
+                    <button
+                      onClick={toggleNotifications}
+                      className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-white flex items-center"
+                    >
+                      Notifications
+                      {notifications && notifications.filter((n) => !n.read).length > 0 && (
+                        <span className="ml-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                          {notifications.filter((n) => !n.read).length}
+                        </span>
+                      )}
+                    </button>
+                    {showNotifications && (
+                      <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
+                        {notifications && notifications.length === 0 ? (
+                          <p className="text-gray-600">No notifications</p>
+                        ) : (
+                          notifications.map((n) => (
+                            <div
                               key={n._id}
                               className={`p-2 border-b last:border-b-0 ${n.read ? 'opacity-50' : ''}`}
                             >
@@ -81,23 +96,24 @@ const Header = () => {
                                   ({n.createdAt ? new Date(n.createdAt).toLocaleString() : 'No date'})
                                 </span>
                               </p>
-                                {!n.read && (
-                                  <button
-                                    onClick={() => markAsRead(n._id)}
-                                    className="mt-1 text-blue-500 hover:text-blue-600 text-xs"
-                                  >
-                                    Mark as Read
-                                  </button>
-                                )}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                )}
-                <li>
+                              {!n.read && (
+                                <button
+                                  onClick={() => markAsRead(n._id)}
+                                  className="mt-1 text-blue-500 hover:text-blue-600 text-xs"
+                                >
+                                  Mark as Read
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              </>
+            )}
+            <li>
                   <button
                     onClick={handleLogout}
                     className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white no-underline"
