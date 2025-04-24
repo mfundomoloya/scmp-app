@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import StudentDashboard from './pages/StudentDashboard';
 import LecturerDashboard from './pages/LecturerDashboard';
 import AdminPanel from './pages/AdminPanel';
+import AdminBookings from './pages/AdminBookings';
 import Login from './components/Login';
 import Register from './components/Register';
 import VerifyEmail from './pages/VerifyEmail';
@@ -67,6 +68,14 @@ function App() {
               element={
                 <ProtectedRoute role={['student', 'lecturer']}>
                   <Bookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/bookings"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminBookings />
                 </ProtectedRoute>
               }
             />

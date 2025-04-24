@@ -26,8 +26,8 @@ const Header = () => {
   };
 
   const handleBookingsClick = () => {
-    console.log('Bookings link clicked, navigating to /bookings');
-    navigate('/bookings'); // Fallback navigation
+    console.log('Bookings link clicked, navigating to', user.role === 'admin' ? '/admin/bookings' : '/bookings');
+    navigate(user.role === 'admin' ? '/admin/bookings' : '/bookings');
   };
 
   // Close dropdown when clicking outside
