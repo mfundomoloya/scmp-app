@@ -47,7 +47,6 @@ const BookingForm = ({ onBookingCreated }) => {
 
   return (
     <div>
-      <h2>Create Booking</h2>
       <form onSubmit={handleSubmit}>
         <div>
           <label>Room:</label>

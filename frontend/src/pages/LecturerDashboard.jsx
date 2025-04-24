@@ -1,23 +1,24 @@
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import BookingForm from '../components/BookingForm';
-import BookingList from '../components/BookingList';
 
 const LecturerDashboard = () => {
   const { user } = useContext(AuthContext);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleBookingCreated = () => {
-    setRefreshKey((prev) => prev + 1);
-  };
   return (
-    <div>
-      <h2>
-        {user ? `Welcome, ${user.name}` : 'Lecturer Dashboard'}
-      </h2>
-      <p>This is the lecturer dashboard. Here you can manage your schedule, book rooms, and more.</p>
-      <BookingForm onBookingCreated={handleBookingCreated} />
-      <BookingList refresh={refreshKey} />
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="text-center">
+        <h2 className="text-3xl font-semibold text-blue-600">
+          {user ? `Welcome, ${user.name}` : 'Lecturer Dashboard'}
+        </h2>
+        <p className="mt-2 text-lg text-gray-600">
+          Manage your schedule in the{' '}
+          <Link to="/bookings" className="text-blue-500 hover:underline">
+            Bookings
+          </Link>{' '}
+          section.
+        </p>
+      </div>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import Home from './pages/Home';
 import StudentDashboard from './pages/StudentDashboard';
@@ -18,16 +19,7 @@ import Privacy from './pages/Privacy';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import NotificationToast from './components/NotificationToast';
-
-const ProtectedRoute = ({ children, role }) => {
-  const { user, loading } = useContext(AuthContext);
-
-  if (loading) return <div>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
-  if (role && user.role !== role) return <Navigate to="/" />;
-
-  return children;
-};
+import Bookings from './pages/Bookings';
 
 function App() {
   return (
@@ -67,6 +59,14 @@ function App() {
               element={
                 <ProtectedRoute role="admin">
                   <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings"
+              element={
+                <ProtectedRoute role={['student', 'lecturer']}>
+                  <Bookings />
                 </ProtectedRoute>
               }
             />
