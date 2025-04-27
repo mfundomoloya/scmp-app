@@ -205,4 +205,40 @@ const approveBooking = async (req, res) => {
   }
 };
 
-module.exports = { createBooking, getBookings, cancelBooking, updateStatus, approveBooking };
+const getAvailableSlots = async (req, res) => {
+  const { room, date } = req.query;
+  if (!room || !date) {
+    return res.status(400).json({ message: 'Room and date are required' });
+  }
+
+  try {
+    const bookings = await Booking.find({
+      room,
+      date: {
+        $gte: new Date(date).setHours(0, 0, 0, 0),
+        $lte: new Date(date).setHours(23, 59, 59, 999),
+      },
+      status: { $ne: 'cancelled' },
+    });
+
+    const operatingHours = [
+      '08:00-09:00', '09:00-10:00', '10:00-11:00', '11:00-12:00',
+      '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'
+    ];
+
+    const bookedSlots = bookings.map((booking) => {
+      const start = new Date(booking.startTime).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+      const end = new Date(booking.endTime).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+      return `${start}-${end}`;
+    });
+
+    const availableSlots = operatingHours.filter((slot) => !bookedSlots.includes(slot.replace(/:00$/, '')));
+
+    res.json(availableSlots);
+  } catch (error) {
+    console.error('Error fetching available slots:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { createBooking, getBookings, cancelBooking, updateStatus, approveBooking, getAvailableSlots };
