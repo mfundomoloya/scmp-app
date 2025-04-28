@@ -28,7 +28,9 @@ const resetAdminPassword = async (email, newPassword) => {
     console.log('Attempting to reset password for:', email);
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
-    console.log('Generated hash for password:', { hashLength: hashedPassword.length });
+    console.log('Generated hash for password:', {
+      hashLength: hashedPassword.length,
+    });
 
     // Update or insert admin user
     const updateResult = await User.updateOne(
@@ -87,6 +89,5 @@ const resetAdminPassword = async (email, newPassword) => {
 
 // Run the script
 resetAdminPassword('admin1@scmp.com', '@dmin25');
-
 
 ///p@ss123 mfundomoloya19@gmail.com
