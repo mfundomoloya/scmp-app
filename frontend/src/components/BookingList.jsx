@@ -24,12 +24,10 @@ const BookingList = ({ refresh }) => {
         id: user.id,
         role: user.role,
       });
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/bookings`,
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/bookings`,
         {
           headers: { 'x-auth-token': localStorage.getItem('token') },
-        }
-      );
+        });
       console.log('Bookings fetched:', response.data);
       setBookings(response.data);
       setFilteredBookings(response.data);
@@ -51,8 +49,7 @@ const BookingList = ({ refresh }) => {
       result = result.filter((b) => b.status === filters.status);
     }
     if (filters.room) {
-      result = result.filter((b) =>
-        b.room.toLowerCase().includes(filters.room.toLowerCase())
+      result = result.filter((b) => b.room.toLowerCase().includes(filters.room.toLowerCase())
       );
     }
     if (filters.startDate) {
@@ -74,6 +71,7 @@ const BookingList = ({ refresh }) => {
     }
   }, [user, refresh]);
 
+  //this handles approvals and status changes
   const handleCancel = async (id) => {
     setShowModal(id);
     setModalAction({ type: 'cancel' });
@@ -89,45 +87,29 @@ const BookingList = ({ refresh }) => {
     try {
       if (modalAction.type === 'cancel') {
         console.log('Cancelling booking:', showModal);
-        await axios.delete(
-          `${import.meta.env.VITE_API_URL}/api/bookings/${showModal}`,
+        await axios.delete(`${import.meta.env.VITE_API_URL}/api/bookings/${showModal}`,
           {
             headers: { 'x-auth-token': localStorage.getItem('token') },
-          }
-        );
+          });
         console.log('Booking cancelled:', showModal);
       } else if (modalAction.type === 'status') {
-        console.log('Updating booking status:', {
-          id: showModal,
-          status: modalAction.status,
-        });
+        console.log('Updating booking status:', { id: showModal, status: modalAction.status });
         await axios.put(
           `${import.meta.env.VITE_API_URL}/api/bookings/${showModal}/status`,
           { status: modalAction.status },
           { headers: { 'x-auth-token': localStorage.getItem('token') } }
         );
-        console.log('Booking status updated:', {
-          id: showModal,
-          status: modalAction.status,
-        });
+        console.log('Booking status updated:', { id: showModal, status: modalAction.status });
       }
       fetchBookings();
     } catch (err) {
       console.error(
-        `${
-          modalAction.type === 'cancel' ? 'Cancel booking' : 'Update status'
-        } error:`,
-        {
+        `${modalAction.type === 'cancel' ? 'Cancel booking' : 'Update status'} error:`,{
           message: err.message,
           response: err.response?.data,
         }
       );
-      setError(
-        err.response?.data?.msg ||
-          `Failed to ${
-            modalAction.type === 'cancel' ? 'cancel booking' : 'update status'
-          }`
-      );
+      setError(err.response?.data?.msg || `Failed to ${modalAction.type === 'cancel' ? 'cancel booking' : 'update status'}`);
     } finally {
       setLoading(false);
       setShowModal(null);
@@ -407,21 +389,21 @@ const BookingList = ({ refresh }) => {
               Confirm Action
             </h3>
             <p className="mb-6 text-gray-300">
-              {modalAction.type === 'cancel'
-                ? 'Are you sure you want to cancel this booking? This action cannot be undone.'
-                : `Are you sure you want to change the status to "${modalAction.status}"?`}
+            {modalAction.type === 'cancel'
+                ? 'Are you sure you want to cancel this booking?'
+                : `Change status to ${modalAction.status}?`}
             </p>
             <div className="flex justify-end space-x-4">
               <button
                 onClick={closeModal}
-                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition duration-200"
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded disabled:opacity-50"
                 disabled={loading}
               >
-                No, Go Back
+                No
               </button>
               <button
                 onClick={confirmAction}
-                className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition duration-200"
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
                 disabled={loading}
               >
                 {loading ? (
