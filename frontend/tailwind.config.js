@@ -7,6 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        blue: '#0055b8', // Primary blue for buttons, links, etc.
+        'blue-dark': '#003d82', // Darker blue for hover states
+        'blue-light': '#e6f0ff', // Light blue for backgrounds
+        black: '#212121', // Almost black for text
+        'gray-dark': '#555555', // Dark gray for secondary text
+        'gray-light': '#f5f8fa',
+        // Semantic colors
+        success: '#2e7d32', // Green
+        danger: '#d32f2f', // Red
+        // Keep the original colors for backward compatibility
         purple: '#3f3cbb',
         midnight: '#121063',
         metal: '#565584',

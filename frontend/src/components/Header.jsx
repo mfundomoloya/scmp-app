@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
 
@@ -7,22 +7,37 @@ const Header = () => {
   const { user, logout } = useContext(AuthContext);
   const { notifications, markAsRead } = useContext(NotificationContext);
   const navigate = useNavigate();
+  const location = useLocation(); // Get current location
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Debug logging
+  console.log(
+    'Header: User:',
+    user ? { id: user.id, role: user.role, name: user.name } : null
+  );
+  console.log('Header: Notifications:', notifications);
+  console.log('Header: Show Notifications:', showNotifications);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  // Toggle dropdown
   const toggleNotifications = () => {
     setShowNotifications((prev) => !prev);
   };
 
   const handleBookingsClick = () => {
+    console.log(
+      'Bookings link clicked, navigating to',
+      user.role === 'admin' ? '/admin/bookings' : '/bookings'
+    );
     navigate(user.role === 'admin' ? '/admin/bookings' : '/bookings');
   };
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -35,19 +50,54 @@ const Header = () => {
     };
   }, []);
 
+  // Check if a path is active
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
   return (
-    <header className="bg-purple text-white p-4 shadow-md">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-white no-underline">
-          <h1 className="text-2xl font-bold">Smart Campus Portal</h1>
+    <header className="bg-black text-white py-5 shadow-md">
+      <div className="container mx-auto flex justify-between items-center px-8">
+        <Link to="/" className="no-underline flex items-center">
+          <div className="bg-[#3b82f6] p-2.5 mr-3 rounded">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold">Smart Campus</h1>
         </Link>
-        <nav>
-          <ul className="flex items-center space-x-4">
+        <nav className="flex-1 flex justify-end">
+          <ul className="list-none flex items-center space-x-8">
             {user ? (
               <>
-                <li className="text-white">
-                  Welcome,{' '}
-                  <span className="font-medium">{user.name || 'User'}</span>
+                <li>
+                  <Link
+                    to="/about"
+                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium"
+                  >
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/contact"
+                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium"
+                  >
+                    Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/timetable"
+                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium"
+                  >
+                    Timetable
+                  </Link>
                 </li>
                 {user.role !== 'admin' && (
                   <>
@@ -55,66 +105,68 @@ const Header = () => {
                       <Link
                         to="/bookings"
                         onClick={handleBookingsClick}
-                        className="text-white hover:text-silver transition duration-200"
+                        className="text-white no-underline hover:text-[#3b82f6] transition duration-150"
                       >
                         Bookings
                       </Link>
                     </li>
-                    <li ref={dropdownRef} className="relative">
-                      <button
-                        onClick={toggleNotifications}
-                        className="bg-midnight hover:bg-blue-800 px-3 py-1 rounded text-white flex items-center transition duration-200"
-                      >
-                        Notifications
-                        {notifications &&
-                          notifications.filter((n) => !n.read).length > 0 && (
-                            <span className="ml-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                              {notifications.filter((n) => !n.read).length}
-                            </span>
-                          )}
-                      </button>
-                      {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
-                          {notifications && notifications.length === 0 ? (
-                            <p className="text-gray-600">No notifications</p>
-                          ) : (
-                            notifications.map((n) => (
-                              <div
-                                key={n._id}
-                                className={`p-2 border-b last:border-b-0 ${
-                                  n.read ? 'opacity-50' : ''
-                                }`}
-                              >
-                                <p className="text-sm">
-                                  {n.message}{' '}
-                                  <span className="text-xs text-gray-500">
-                                    (
-                                    {n.createdAt
-                                      ? new Date(n.createdAt).toLocaleString()
-                                      : 'No date'}
-                                    )
-                                  </span>
-                                </p>
-                                {!n.read && (
-                                  <button
-                                    onClick={() => markAsRead(n._id)}
-                                    className="mt-1 text-purple hover:text-midnight text-xs"
-                                  >
-                                    Mark as Read
-                                  </button>
-                                )}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
+                    <li ref={dropdownRef}>
+                      <div className="relative">
+                        <button
+                          onClick={toggleNotifications}
+                          className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
+                        >
+                          Notifications
+                          {notifications &&
+                            notifications.filter((n) => !n.read).length > 0 && (
+                              <span className="ml-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                                {notifications.filter((n) => !n.read).length}
+                              </span>
+                            )}
+                        </button>
+                        {showNotifications && (
+                          <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
+                            {notifications && notifications.length === 0 ? (
+                              <p className="text-gray-600">No notifications</p>
+                            ) : (
+                              notifications.map((n) => (
+                                <div
+                                  key={n._id}
+                                  className={`p-2 border-b last:border-b-0 ${
+                                    n.read ? 'opacity-50' : ''
+                                  }`}
+                                >
+                                  <p className="text-sm">
+                                    {n.message}{' '}
+                                    <span className="text-xs text-gray-500">
+                                      (
+                                      {n.createdAt
+                                        ? new Date(n.createdAt).toLocaleString()
+                                        : 'No date'}
+                                      )
+                                    </span>
+                                  </p>
+                                  {!n.read && (
+                                    <button
+                                      onClick={() => markAsRead(n._id)}
+                                      className="mt-1 text-[#3b82f6] hover:text-blue-600 text-xs"
+                                    >
+                                      Mark as Read
+                                    </button>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </li>
                   </>
                 )}
                 <li>
                   <button
                     onClick={handleLogout}
-                    className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white transition duration-200"
+                    className="text-white border border-white hover:bg-white hover:text-black px-4 py-1.5 rounded transition duration-150"
                   >
                     Logout
                   </button>
@@ -124,8 +176,36 @@ const Header = () => {
               <>
                 <li>
                   <Link
+                    to="/about"
+                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150"
+                  >
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/contact"
+                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150"
+                  >
+                    Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/timetable"
+                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150"
+                  >
+                    Timetable
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     to="/login"
-                    className="text-white hover:text-silver transition duration-200"
+                    className={`text-white px-4 py-1.5 transition duration-150 ${
+                      isActive('/login')
+                        ? 'bg-white text-black'
+                        : 'border border-white hover:bg-white hover:text-[#121824]'
+                    } rounded`}
                   >
                     Login
                   </Link>
@@ -133,7 +213,11 @@ const Header = () => {
                 <li>
                   <Link
                     to="/register"
-                    className="text-white hover:text-silver transition duration-200"
+                    className={`px-4 py-1.5 rounded transition duration-150 ${
+                      isActive('/register')
+                        ? 'bg-[#3b82f6] text-white'
+                        : 'bg-[#3b82f6] text-white hover:bg-blue-700'
+                    }`}
                   >
                     Register
                   </Link>
