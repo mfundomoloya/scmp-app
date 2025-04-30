@@ -7,11 +7,10 @@ const Header = () => {
   const { user, logout } = useContext(AuthContext);
   const { notifications, markAsRead } = useContext(NotificationContext);
   const navigate = useNavigate();
-  const location = useLocation(); // Get current location
+  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Debug logging
   console.log(
     'Header: User:',
     user ? { id: user.id, role: user.role, name: user.name } : null
@@ -24,7 +23,6 @@ const Header = () => {
     navigate('/login');
   };
 
-  // Toggle dropdown
   const toggleNotifications = () => {
     setShowNotifications((prev) => !prev);
   };
@@ -37,7 +35,6 @@ const Header = () => {
     navigate(user.role === 'admin' ? '/admin/bookings' : '/bookings');
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -50,7 +47,6 @@ const Header = () => {
     };
   }, []);
 
-  // Check if a path is active
   const isActive = (path) => {
     return location.pathname === path;
   };
@@ -78,7 +74,7 @@ const Header = () => {
                 <li>
                   <Link
                     to="/about"
-                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium"
+                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/about') ? 'text-[#3b82f6]' : ''}`}
                   >
                     About
                   </Link>
@@ -86,7 +82,7 @@ const Header = () => {
                 <li>
                   <Link
                     to="/contact"
-                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium"
+                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/contact') ? 'text-[#3b82f6]' : ''}`}
                   >
                     Contact
                   </Link>
@@ -94,18 +90,46 @@ const Header = () => {
                 <li>
                   <Link
                     to="/timetable"
-                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium"
+                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/timetable') ? 'text-[#3b82f6]' : ''}`}
                   >
                     Timetable
                   </Link>
                 </li>
-                {user.role !== 'admin' && (
+                {user.role === 'admin' ? (
+                  <>
+                    <li>
+                      <Link
+                        to="/admin/bookings"
+                        onClick={handleBookingsClick}
+                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/bookings') ? 'text-[#3b82f6]' : ''}`}
+                      >
+                        Bookings
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/rooms"
+                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/rooms') ? 'text-[#3b82f6]' : ''}`}
+                      >
+                        Manage Rooms
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/rooms/import"
+                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/rooms/import') ? 'text-[#3b82f6]' : ''}`}
+                      >
+                        Import Rooms
+                      </Link>
+                    </li>
+                  </>
+                ) : (
                   <>
                     <li>
                       <Link
                         to="/bookings"
                         onClick={handleBookingsClick}
-                        className="text-white no-underline hover:text-[#3b82f6] transition duration-150"
+                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/bookings') ? 'text-[#3b82f6]' : ''}`}
                       >
                         Bookings
                       </Link>
@@ -177,7 +201,7 @@ const Header = () => {
                 <li>
                   <Link
                     to="/about"
-                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150"
+                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/about') ? 'text-[#3b82f6]' : ''}`}
                   >
                     About
                   </Link>
@@ -185,7 +209,7 @@ const Header = () => {
                 <li>
                   <Link
                     to="/contact"
-                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150"
+                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/contact') ? 'text-[#3b82f6]' : ''}`}
                   >
                     Contact
                   </Link>
@@ -193,7 +217,7 @@ const Header = () => {
                 <li>
                   <Link
                     to="/timetable"
-                    className="text-white no-underline hover:text-[#3b82f6] transition duration-150"
+                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/timetable') ? 'text-[#3b82f6]' : ''}`}
                   >
                     Timetable
                   </Link>

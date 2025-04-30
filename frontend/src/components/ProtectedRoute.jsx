@@ -1,102 +1,59 @@
 import { useContext } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { jwtDecode }from 'jwt-decode';
 import { AuthContext } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useContext(AuthContext);
   const location = useLocation();
+  const token = localStorage.getItem('token');
 
-  console.log(
-    'ProtectedRoute: User:',
-    user ? { id: user.id, role: user.role } : null
-  );
+  // Decode JWT for user data if AuthContext user is unavailable
+  let decodedUser = user;
+  if (token && !user) {
+    try {
+      decodedUser = jwtDecode(token);
+      console.log('ProtectedRoute: Decoded JWT:', { id: decodedUser.id, role: decodedUser.role });
+    } catch (err) {
+      console.error('ProtectedRoute: Invalid token:', err);
+      localStorage.removeItem('token');
+      toast.error('Session expired. Please log in again.');
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+  }
+
+  console.log('ProtectedRoute: User:', decodedUser ? { id: decodedUser.id, role: decodedUser.role } : null);
   console.log('ProtectedRoute: Role(s) allowed:', role);
 
-  // Convert role to array if it's a string
+  // Convert role to array
   const allowedRoles = Array.isArray(role) ? role : role ? [role] : null;
 
-  // If still loading, show loading screen
+  // Loading screen
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mx-auto mb-4"></div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Loading</h2>
-          <p className="text-gray-500">
-            Please wait while we load your content...
-          </p>
+          <p className="text-gray-500">Please wait while we load your content...</p>
         </div>
       </div>
     );
   }
 
-  // If user is not logged in, redirect to login page
-  if (!user) {
+  // Redirect to login if not authenticated
+  if (!decodedUser) {
     console.log('ProtectedRoute: No user, redirecting to /login');
+    toast.error('Please log in to access this page.');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If specific roles are required and user doesn't have them
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    console.log(
-      `ProtectedRoute: Role ${user.role} not allowed, redirecting to /`
-    );
-
-    return (
-      <div className="min-h-screen relative">
-        {/* Background Image with Overlay */}
-        <div
-          className="absolute inset-0 bg-cover bg-center z-0"
-          style={{ backgroundImage: 'url(/images/access-denied-bg.jpg)' }}
-        >
-          <div className="absolute inset-0 bg-black bg-opacity-75"></div>
-        </div>
-
-        <div className="container mx-auto px-4 py-16 relative z-10 min-h-screen flex items-center justify-center">
-          <div className="bg-white bg-opacity-95 p-8 rounded-lg shadow-xl max-w-md w-full text-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-20 w-20 text-red-500 mx-auto mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Access Denied
-            </h2>
-
-            <p className="text-gray-600 mb-6">
-              You don't have permission to access this page. This area is
-              restricted to {allowedRoles.join(' or ')} users.
-            </p>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => window.history.back()}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition duration-150"
-              >
-                Go Back
-              </button>
-
-              <button
-                onClick={() => (window.location.href = '/')}
-                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-150"
-              >
-                Return to Home
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Redirect to /rooms if role not allowed
+  if (allowedRoles && !allowedRoles.includes(decodedUser.role)) {
+    console.log(`ProtectedRoute: Role ${decodedUser.role} not allowed, redirecting to /rooms`);
+    toast.error(`Access denied. This page is restricted to ${allowedRoles.join(' or ')} users.`);
+    return <Navigate to="/rooms" replace />;
   }
 
   console.log('ProtectedRoute: Access granted');

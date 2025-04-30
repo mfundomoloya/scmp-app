@@ -13,6 +13,7 @@ const bookingsRoutes = require('./routes/bookingsRoutes');
 const schedulesRoutes = require('./routes/schedulesRoutes');
 const announcementsRoutes = require('./routes/announcementsRoutes');
 const notificationRoutes = require('./routes/notification');
+const roomRoutes = require('./routes/roomsRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -45,6 +46,7 @@ app.use('/api/bookings', bookingsRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/rooms', roomRoutes);
 
 // Socket.IO setup
 io.on('connection', (socket) => {
