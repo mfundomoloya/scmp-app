@@ -17,6 +17,29 @@ const BookingList = ({ refresh }) => {
   const [showModal, setShowModal] = useState(null);
   const [modalAction, setModalAction] = useState(null);
 
+
+// Format date as dd-mm-yyyy
+const formatDate = (dateString) => {
+  const d = new Date(dateString);
+  if (isNaN(d)) return 'Invalid Date';
+  return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1)
+    .toString()
+    .padStart(2, '0')}-${d.getFullYear()}`;
+};
+
+// Format time as HH:mm (24-hour clock, South African locale)
+const formatTime = (timeString) => {
+  const t = new Date(timeString);
+  if (isNaN(t)) return 'Invalid Time';
+  return t.toLocaleTimeString('en-ZA', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+
+
   const fetchBookings = async () => {
     setLoading(true);
     try {
@@ -315,14 +338,10 @@ const BookingList = ({ refresh }) => {
                         {booking.room}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {new Date(booking.date).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                      {formatDate(booking.date)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {booking.startTime} - {booking.endTime}
+                      {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span

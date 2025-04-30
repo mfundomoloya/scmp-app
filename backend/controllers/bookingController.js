@@ -11,6 +11,28 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Helper function to format dates as dd-mm-yyyy
+const formatDate = (date) => {
+  const d = new Date(date);
+  if (isNaN(d)) return 'Invalid Date';  // Check if the date is invalid
+  return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
+};
+
+// Helper function to format time as HH:mm
+const formatTime = (dateString) => {
+  const t = new Date(dateString);
+  if (isNaN(t)) return 'Invalid Time';  // Check if time is invalid
+  return t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+};
+
+
+// Format booking date and times
+const formattedDate = formatDate(booking.date);
+const formattedStartTime = formatTime(booking.startTime);  // Format start time
+const formattedEndTime = formatTime(booking.endTime);  // Format end time
+
+
+
 const createBooking = async (req, res) => {
   const { room, date, startTime, endTime } = req.body;
   try {
@@ -91,13 +113,13 @@ const cancelBooking = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Booking Cancelled',
-      text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been cancelled.`,
+      text: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been cancelled.`,
     });
 
     // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
-      message: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been cancelled.`,
+      message: `Your booking for ${booking.room} on ${formattedDate} has been cancelled.`,
       read: false,
     });
     await notification.save();
@@ -139,13 +161,13 @@ const updateStatus = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: `Booking Status Updated to ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-      text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been updated to ${status}.`,
+      text: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been updated to ${status}.`,
     });
 
     // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
-      message: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been updated to ${status}.`,
+      message: `Your booking for ${booking.room} on ${formattedDate} has been updated to ${status}.`,
       read: false,
     });
     await notification.save();
@@ -183,13 +205,13 @@ const approveBooking = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Booking Approved',
-      text: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} from ${booking.startTime} to ${booking.endTime} has been approved.`,
+      text: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been approved.`,
     });
 
     // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
-      message: `Your booking for ${booking.room} on ${new Date(booking.date).toLocaleDateString()} has been approved.`,
+      message: `Your booking for ${booking.room} on ${formattedDate} has been approved.`,
       read: false,
     });
     await notification.save();
@@ -221,18 +243,27 @@ const getAvailableSlots = async (req, res) => {
       status: { $ne: 'cancelled' },
     });
 
+    // Define operating slots
     const operatingHours = [
       '08:00-09:00', '09:00-10:00', '10:00-11:00', '11:00-12:00',
       '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'
     ];
 
+    // Format time helper
+    const formatTime = (time) => {
+      const t = new Date(time);
+      return t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+
+    // Generate booked slots like '08:00-09:00'
     const bookedSlots = bookings.map((booking) => {
-      const start = new Date(booking.startTime).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-      const end = new Date(booking.endTime).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+      const start = formatTime(booking.startTime);
+      const end = formatTime(booking.endTime);
       return `${start}-${end}`;
     });
 
-    const availableSlots = operatingHours.filter((slot) => !bookedSlots.includes(slot.replace(/:00$/, '')));
+    // Filter out slots that are already booked
+    const availableSlots = operatingHours.filter((slot) => !bookedSlots.includes(slot));
 
     res.json(availableSlots);
   } catch (error) {
@@ -240,5 +271,6 @@ const getAvailableSlots = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 module.exports = { createBooking, getBookings, cancelBooking, updateStatus, approveBooking, getAvailableSlots };
