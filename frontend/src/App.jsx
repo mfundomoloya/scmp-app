@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -21,13 +22,18 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import NotificationToast from './components/NotificationToast';
 import Bookings from './pages/Bookings';
+import RoomForm from './components/RoomForm';
+import RoomList from './components/RoomList';
+import RoomImport from './components/RoomImport';
+import BookingForm from './components/BookingForm';
+import BookingList from './components/BookingList';
 
 function App() {
   return (
     <NotificationProvider>
       <div className="flex flex-col min-h-screen bg-gray-100">
-        <NotificationToast />
         <Header />
+        <ToastContainer />
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -47,6 +53,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/rooms" element={<RoomList />} />
             <Route
               path="/lecturer"
               element={
@@ -55,6 +62,22 @@ function App() {
                 </ProtectedRoute>
               }
             />
+             <Route
+          path="/admin/rooms"
+          element={
+            <ProtectedRoute role="admin">
+              <RoomForm />
+            </ProtectedRoute>
+          }
+        />
+             <Route
+          path="/admin/rooms/import"
+          element={
+            <ProtectedRoute role="admin">
+              <RoomImport />
+            </ProtectedRoute>
+          }
+        />
             <Route
               path="/admin"
               element={
@@ -67,10 +90,11 @@ function App() {
               path="/bookings"
               element={
                 <ProtectedRoute role={['student', 'lecturer']}>
-                  <Bookings />
+                  <BookingForm />
                 </ProtectedRoute>
               }
             />
+            <Route path="/bookings/list" element={<BookingList />} />
             <Route
               path="/admin/bookings"
               element={
