@@ -6,7 +6,27 @@ import { useState } from 'react';
   const RoomImport = () => {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [skipDuplicates, setSkipDuplicates] = useState(false);
     const navigate = useNavigate();
+
+    const validateCSV = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          const lines = text.split('\n').filter(line => line.trim() !== '');
+          if (lines.length <= 1) {
+            reject('CSV file contains only header or is empty');
+          }
+          if (!text.includes(',') && !text.includes(';')) {
+            reject('CSV must use comma or semicolon delimiters');
+          }
+          resolve();
+        };
+        reader.onerror = () => reject('Error reading CSV file');
+        reader.readAsText(file);
+      });
+    };
 
     const handleFileChange = (e) => {
       setFile(e.target.files[0]);
@@ -18,15 +38,26 @@ import { useState } from 'react';
           toast.error('Please select a valid CSV file');
           return;
         }
+
+        try {
+          await validateCSV(file);
+        } catch (err) {
+          toast.error(err);
+          return;
+        }
+
         const formData = new FormData();
         formData.append('file', file);
         const token = localStorage.getItem('token');
         try {
           setLoading(true);
           const response = await axios.post(
-            `${import.meta.env.VITE_API_URL}/api/rooms/import`,
+            `${import.meta.env.VITE_API_URL}/api/rooms/import?skipDuplicates=${skipDuplicates}`,
             formData,
-            { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } }
+            { headers: 
+              { 'x-auth-token': token, 
+                'Content-Type': 'multipart/form-data' 
+              } }
           );
           console.log('RoomImport: Imported:', response.data);
           toast.success(response.data.message);
@@ -38,57 +69,68 @@ import { useState } from 'react';
           navigate('/rooms');
         } catch (err) {
           console.error('RoomImport: Import error:', JSON.stringify(err.response?.data, null, 2));
-          const errors = err.response?.data?.errors || [];
-          // Check if all errors are due to duplicates
-          const allDuplicates = errors.length > 0 && errors.every(e => e.error === 'Room already exists');
-          if (allDuplicates) {
-            const duplicateNames = errors.map(e => e.row.name).join(', ');
-            toast.error(`Import failed: Rooms already exist: ${duplicateNames}`);
-          } else {
-            const errorMsg = err.response?.data?.msg || 'Failed to import rooms';
-            toast.error(errorMsg);
+        const errors = err.response?.data?.errors || [];
+        const allDuplicates = errors.length > 0 && errors.every(e => e.error === 'Room already exists');
+        if (err.response?.data?.msg) {
+          toast.error(err.response.data.msg);
+          if (!allDuplicates && errors.length > 0) {
+            errors.forEach((err) => {
+              toast.warn(`Row error: ${err.error}`);
+            });
           }
+        } else if (allDuplicates) {
+          const duplicateNames = errors.map(e => e.row.name).join(', ');
+          toast.error(`Import failed: Rooms already exist: ${duplicateNames}`);
+        } else {
+          toast.error('Failed to import rooms');
           if (errors.length > 0) {
             errors.forEach((err) => {
               toast.warn(`Row error: ${err.error}`);
             });
           }
+        }
         } finally {
           setLoading(false);
         }
       };
 
     return (
-      <div className="container mx-auto px-4 py-8 min-h-screen bg-gray-100">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Import Rooms</h2>
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md max-w-md">
-          <div className="mb-4">
-            <label htmlFor="file" className="block text-gray-700 font-medium mb-2">
-              Select CSV File
-            </label>
+      <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-6 text-center">Import Rooms</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-bold mb-2" htmlFor="file">
+            Upload CSV File
+          </label>
+          <input
+            type="file"
+            id="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            className="w-full p-2 border rounded"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="flex items-center">
             <input
-              type="file"
-              id="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-              disabled={loading}
+              type="checkbox"
+              checked={skipDuplicates}
+              onChange={(e) => setSkipDuplicates(e.target.checked)}
+              className="mr-2"
             />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || !file}
-            className={`w-full py-2 px-4 rounded transition duration-150 ${
-              loading || !file
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-[#3b82f6] hover:bg-blue-700 text-white'
-            }`}
-          >
-            {loading ? 'Importing...' : 'Import Rooms'}
-          </button>
-        </form>
-      </div>
-    );
-  };
+            Skip existing rooms
+          </label>
+        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-[#3b82f6] text-white p-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          {loading ? 'Importing...' : 'Import Rooms'}
+        </button>
+      </form>
+    </div>
+  );
+};
 
   export default RoomImport;

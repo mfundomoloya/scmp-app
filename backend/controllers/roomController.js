@@ -2,9 +2,10 @@ const Room = require('../models/Room');
 const Booking = require('../models/Booking');
 const csvParser = require('csv-parser');
 const fs = require('fs');
-  const { Readable } = require('stream');
+const { Readable } = require('stream');
 
-  const getRooms = async (req, res) => {
+
+const getRooms = async (req, res) => {
     try {
       const rooms = await Room.find();
       console.log('Get rooms: Fetched:', rooms.length);
@@ -44,6 +45,7 @@ const fs = require('fs');
 
     const created = [];
     const errors = [];
+    const rows = [];
     const skipDuplicates = req.query.skipDuplicates === 'true';
     console.log('Import rooms: Skip duplicates:', skipDuplicates);
    
@@ -53,6 +55,16 @@ const fs = require('fs');
       buffer = buffer.slice(3);
       console.log('Import rooms: Stripped BOM from CSV');
     }
+    
+    // Validate buffer
+    if (buffer.length === 0) {
+      return res.status(400).json({ msg: 'CSV file is empty', errors: [] });
+    }
+
+    // Log raw buffer to debug
+    const rawCSV = buffer.toString('utf8').substring(0, 200);
+    console.log('Import rooms: Raw CSV:', rawCSV);
+
 
     // Log buffer as string to debug
     console.log('Import rooms: Raw CSV:', buffer.toString('utf8').substring(0, 100));
@@ -70,67 +82,79 @@ const fs = require('fs');
       skipLines: 1,
     });
 
+
     parser
       .on('data', async (row) => {
+        rows.push(row);
         console.log('Import rooms: Parsed row:', row);
-        try {
-          // Validate row completeness
-          if (!row.name || typeof row.name !== 'string' || row.name.trim() === '') {
-            throw new Error('Invalid or missing name');
-          }
-          if (!row.capacity) {
-            throw new Error('Missing capacity');
-          }
-          const capacity = parseInt(row.capacity);
-          if (isNaN(capacity) || capacity < 1) {
-            throw new Error(`Invalid capacity: ${row.capacity}`);
-          }
-          let maintenance = [];
-          if (row.maintenanceStart && row.maintenanceEnd) {
-            const startDate = new Date(row.maintenanceStart);
-            const endDate = new Date(row.maintenanceEnd);
-            if (isNaN(startDate) || isNaN(endDate)) {
-              throw new Error(`Invalid maintenance dates: ${row.maintenanceStart}, ${row.maintenanceEnd}`);
-            }
-            if (startDate > endDate) {
-              throw new Error('maintenanceStart must be before maintenanceEnd');
-            }
-            maintenance = [{ startDate, endDate }];
-          }
+      }).on('end', async () => {
+        console.log('Import rooms: Collected rows:', rows.length);
 
-          const existingRoom = await Room.findOne({ name: row.name.trim() });
-          if (existingRoom) {
-            if (skipDuplicates) {
-              console.log('Import rooms: Skipped existing room:', row.name);
-              return;
+        for (const row of rows) {
+          try {
+            // Validate row completeness
+            if (!row.name || typeof row.name !== 'string' || row.name.trim() === '') {
+              throw new Error('Invalid or missing name');
             }
-            throw new Error('Room already exists');
-          }
+            if (!row.capacity) {
+              throw new Error('Missing capacity');
+            }
+            const capacity = parseInt(row.capacity);
+            if (isNaN(capacity) || capacity < 1) {
+              throw new Error(`Invalid capacity: ${row.capacity}`);
+            }
+            let maintenance = [];
+            if (row.maintenanceStart && row.maintenanceEnd) {
+              const startDate = new Date(row.maintenanceStart);
+              const endDate = new Date(row.maintenanceEnd);
+              if (isNaN(startDate) || isNaN(endDate)) {
+                throw new Error(`Invalid maintenance dates: ${row.maintenanceStart}, ${row.maintenanceEnd}`);
+              }
+              if (startDate > endDate) {
+                throw new Error('maintenanceStart must be before maintenanceEnd');
+              }
+              maintenance = [{ startDate, endDate }];
+            }
 
-          const room = new Room({
-            name: row.name.trim(),
-            capacity,
-            maintenance
-          });
-          await room.save();
-          console.log('Import rooms: Room created:', room.name);
-          created.push({ name: room.name, capacity: room.capacity });
-        } catch (err) {
-          console.warn('Import rooms: Error processing row:', row, err.message);
-          errors.push({ row: { ...row }, error: err.message });
+            const existingRoom = await Room.findOne({ name: row.name.trim() });
+            if (existingRoom) {
+              if (skipDuplicates) {
+                console.log('Import rooms: Skipped existing room:', row.name);
+                continue;
+              }
+              throw new Error('Room already exists');
+            }
+
+            const room = new Room({
+              name: row.name.trim(),
+              capacity,
+              maintenance
+            });
+            await room.save();
+            console.log('Import rooms: Room created:', room.name);
+            created.push({ name: room.name, capacity: room.capacity });
+          } catch (err) {
+            console.warn('Import rooms: Error processing row:', row, err.message);
+            errors.push({ row: { ...row }, error: err.message });
+          }
         }
-      })
-      .on('end', () => {
+
+        console.log('Import rooms: Processed rows:', rows.length);
+        console.log('Import rooms: Error messages:', errors.map(e => e.error));
         console.log('Import rooms: Response:', { created, errors });
+
         if (created.length === 0) {
           const allDuplicates = errors.length > 0 && errors.every(e => e.error === 'Room already exists');
           const msg = allDuplicates
             ? `No rooms imported: All rooms already exist (${errors.map(e => e.row.name).join(', ')})`
-            : 'No rooms imported due to errors';
+            : errors.length > 0
+              ? 'No rooms imported due to row errors'
+              : 'No rooms imported: No valid data rows found';
           return res.status(400).json({ msg, errors });
         }
+
         res.status(201).json({
-          message: `Imported ${created.length} rooms successfully`,
+          message: `Imported ${created.length} room(s) successfully`,
           created,
           errors: errors.length > 0 ? errors : undefined
         });
