@@ -38,9 +38,7 @@ const formatTime = (timeString) => {
   });
 };
 
-
-
-  const fetchBookings = async () => {
+const fetchBookings = async () => {
     setLoading(true);
     try {
       console.log('Fetching bookings for user:', {
