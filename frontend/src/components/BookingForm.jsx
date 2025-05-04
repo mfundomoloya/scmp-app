@@ -2,8 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { format, parseISO } from 'date-fns';
 
-const BookingForm = () => {
+const ErrorBoundary = ({ children }) => {
+  const [hasError, setHasError] = useState(false);
+  useEffect(() => {
+    const errorHandler = (error) => {
+      console.error('ErrorBoundary caught:', error);
+      setHasError(true);
+    };
+    window.addEventListener('error', errorHandler);
+    return () => window.removeEventListener('error', errorHandler);
+  }, []);
+  if (hasError) {
+    return <div className="text-red-300 text-center">Something went wrong. Please try again.</div>;
+  }
+  return children;
+};
+
+const BookingForm = ({ onBookingCreated }) => {
   const [rooms, setRooms] = useState([]);
   const [formData, setFormData] = useState({
     room: '',
@@ -60,13 +77,16 @@ const BookingForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'timeSlot') {
-      const [startTime, endTime] = value.split('-').map((time) => {
-        const [hours, minutes] = time.split(':');
-        const date = new Date(formData.date);
-        date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-        return date.toISOString();
-      });
-      setFormData({ ...formData, startTime, endTime });
+      const selectedSlot = availableSlots[0]?.availableSlots.find(
+        (slot) => slot.startTime === value
+      );
+      if (selectedSlot) {
+        setFormData({
+          ...formData,
+          startTime: selectedSlot.startTime,
+          endTime: selectedSlot.endTime,
+        });
+      }
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -74,15 +94,30 @@ const BookingForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.room || !formData.date || !formData.startTime || !formData.endTime) {
+      toast.error('Please fill in all fields');
+      return;
+    }
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/bookings`, formData, {
-        headers: { 'x-auth-token': token },
-      });
+      const bookingData = {
+        room: formData.room,
+        date: formData.date,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+      };
+      console.log('BookingForm: Submitting booking:', bookingData);
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/bookings`,
+        bookingData,
+        {
+          headers: { 'x-auth-token': token },
+        }
+      );
       toast.success('Booking created successfully');
       console.log('BookingForm: Booking created:', response.data);
-      navigate('/bookings');
+      if (onBookingCreated) onBookingCreated();
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Failed to create booking');
       console.error('BookingForm: Create booking error:', err);
@@ -91,7 +126,14 @@ const BookingForm = () => {
     }
   };
 
+  const formatTimeSlot = (slot) => {
+    const start = format(parseISO(slot.startTime), 'HH:mm', { timeZone: 'Africa/Johannesburg' });
+    const end = format(parseISO(slot.endTime), 'HH:mm', { timeZone: 'Africa/Johannesburg' });
+    return `${start}-${end}`;
+  };
+
   return (
+    <ErrorBoundary>
     <div
       className="booking-form-container"
       style={{
@@ -147,7 +189,7 @@ const BookingForm = () => {
               name="date"
               value={formData.date}
               onChange={handleChange}
-              min={new Date().toISOString().split('T')[0]}
+              min={format(new Date(), 'yyyy-MM-dd')}
               className="w-full p-3 border border-gray-700 rounded-md bg-black bg-opacity-50 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
@@ -160,17 +202,17 @@ const BookingForm = () => {
             <select
               id="timeSlot"
               name="timeSlot"
-              value={`${formData.startTime && formData.endTime ? `${new Date(formData.startTime).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Johannesburg' })}-${new Date(formData.endTime).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Johannesburg' })}` : ''}`}
+              value={formData.startTime}
               onChange={handleChange}
               className="w-full p-3 border border-gray-700 rounded-md bg-black bg-opacity-50 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={!formData.room || !formData.date || loading}
               required
             >
               <option value="">-- Select a time slot --</option>
-              {availableSlots.map((slot) => (
-                <option key={slot} value={slot} className="bg-gray-800">
-                  {slot}
-                </option>
+              {availableSlots[0]?.availableSlots?.map((slot) => (
+                    <option key={slot.startTime} value={slot.startTime} className="bg-gray-800">
+                      {formatTimeSlot(slot)}
+                    </option>
               ))}
             </select>
             {loading && (
@@ -201,7 +243,8 @@ const BookingForm = () => {
             {!loading &&
               formData.room &&
               formData.date &&
-              availableSlots.length === 0 && (
+              (!availableSlots[0]?.availableSlots ||
+                availableSlots[0].availableSlots.length === 0) && (
                 <p className="text-yellow-300 mt-2">
                   No slots available for this room on the selected date.
                 </p>
@@ -244,6 +287,7 @@ const BookingForm = () => {
         </form>
       </div>
     </div>
+    </ErrorBoundary>
   );
 };
 
