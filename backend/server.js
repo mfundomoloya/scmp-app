@@ -10,7 +10,7 @@ const userRoutes = require('./routes/userRoutes');
 const maintenanceRoutes = require('./routes/maintenanceRoutes');
 const authRoutes = require('./routes/authRoutes');
 const bookingsRoutes = require('./routes/bookingsRoutes');
-const schedulesRoutes = require('./routes/schedulesRoutes');
+const timetableRoutes = require('./routes/timetableRoutes');
 const announcementsRoutes = require('./routes/announcementsRoutes');
 const notificationRoutes = require('./routes/notification');
 const roomRoutes = require('./routes/roomsRoutes');
@@ -42,11 +42,11 @@ app.use(limiter);
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
-app.use('/api/schedules', schedulesRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/timetable', timetableRoutes);
 
 // Socket.IO setup
 io.on('connection', (socket) => {

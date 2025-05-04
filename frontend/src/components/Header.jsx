@@ -92,15 +92,37 @@ import { useContext, useState, useEffect, useRef } from 'react';
                       Contact
                     </Link>
                   </li>
-                  <li>
-                    <Link
-                      to="/timetable"
-                      className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/timetable') ? 'text-[#3b82f6]' : ''}`}
-                    >
-                      Timetable
-                    </Link>
-                  </li>
-                  {user.role === 'admin' ? (
+                  {(user.role === 'student' || user.role === 'lecturer') && (
+                    <>
+                      <li>
+                        <Link
+                          to="/timetable"
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/timetable') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Timetable
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/bookings"
+                          onClick={handleBookingsClick}
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/bookings') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Bookings
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/maintenance/report"
+                          onClick={handleMaintenanceClick}
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/maintenance/report') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Maintenance
+                        </Link>
+                      </li>
+                    </>
+                  )}
+                  {user.role === 'admin' && (
                     <>
                       <li>
                         <Link
@@ -135,84 +157,67 @@ import { useContext, useState, useEffect, useRef } from 'react';
                           Maintenance
                         </Link>
                       </li>
-                    </>
-                  ) : (
-                    <>
-                      {(user.role === 'student' || user.role === 'lecturer') && (
-                        <>
-                          <li>
-                            <Link
-                              to="/bookings"
-                              onClick={handleBookingsClick}
-                              className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/bookings') ? 'text-[#3b82f6]' : ''}`}
-                            >
-                              Bookings
-                            </Link>
-                          </li>
-                          <li>
-                            <Link
-                              to="/maintenance/report"
-                              onClick={handleMaintenanceClick}
-                              className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/maintenance/report') ? 'text-[#3b82f6]' : ''}`}
-                            >
-                              Maintenance
-                            </Link>
-                          </li>
-                        </>
-                      )}
-                      <li ref={dropdownRef}>
-                        <div className="relative">
-                          <button
-                            onClick={toggleNotifications}
-                            className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
-                          >
-                            Notifications
-                            {notifications &&
-                              notifications.filter((n) => !n.read).length > 0 && (
-                                <span className="ml-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                                  {notifications.filter((n) => !n.read).length}
-                                </span>
-                              )}
-                          </button>
-                          {showNotifications && (
-                            <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
-                              {notifications && notifications.length === 0 ? (
-                                <p className="text-gray-600">No notifications</p>
-                              ) : (
-                                notifications.map((n) => (
-                                  <div
-                                    key={n._id}
-                                    className={`p-2 border-b last:border-b-0 ${
-                                      n.read ? 'opacity-50' : ''
-                                    }`}
-                                  >
-                                    <p className="text-sm">
-                                      {n.message}{' '}
-                                      <span className="text-xs text-gray-500">
-                                        (
-                                        {n.createdAt
-                                          ? new Date(n.createdAt).toLocaleString()
-                                          : 'No date'}
-                                        )
-                                      </span>
-                                    </p>
-                                    {!n.read && (
-                                      <button
-                                        onClick={() => markAsRead(n._id)}
-                                        className="mt-1 text-[#3b82f6] hover:text-blue-600 text-xs"
-                                      >
-                                        Mark as Read
-                                      </button>
-                                    )}
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
+                      <li>
+                        <Link
+                          to="/admin/timetables/import"
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/timetables/import') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Import Timetables
+                        </Link>
                       </li>
                     </>
                   )}
+                  <li ref={dropdownRef}>
+                    <div className="relative">
+                      <button
+                        onClick={toggleNotifications}
+                        className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
+                      >
+                        Notifications
+                        {notifications &&
+                          notifications.filter((n) => !n.read).length > 0 && (
+                            <span className="ml-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                              {notifications.filter((n) => !n.read).length}
+                            </span>
+                          )}
+                      </button>
+                      {showNotifications && (
+                        <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
+                          {notifications && notifications.length === 0 ? (
+                            <p className="text-gray-600">No notifications</p>
+                          ) : (
+                            notifications.map((n) => (
+                              <div
+                                key={n._id}
+                                className={`p-2 border-b last:border-b-0 ${
+                                  n.read ? 'opacity-50' : ''
+                                }`}
+                              >
+                                <p className="text-sm">
+                                  {n.message}{' '}
+                                  <span className="text-xs text-gray-500">
+                                    (
+                                    {n.createdAt
+                                      ? new Date(n.createdAt).toLocaleString()
+                                      : 'No date'}
+                                    )
+                                  </span>
+                                </p>
+                                {!n.read && (
+                                  <button
+                                    onClick={() => markAsRead(n._id)}
+                                    className="mt-1 text-[#3b82f6] hover:text-blue-600 text-xs"
+                                  >
+                                    Mark as Read
+                                  </button>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </li>
                   <li>
                     <button
                       onClick={handleLogout}
@@ -238,14 +243,6 @@ import { useContext, useState, useEffect, useRef } from 'react';
                       className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/contact') ? 'text-[#3b82f6]' : ''}`}
                     >
                       Contact
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/timetable"
-                      className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/timetable') ? 'text-[#3b82f6]' : ''}`}
-                    >
-                      Timetable
                     </Link>
                   </li>
                   <li>

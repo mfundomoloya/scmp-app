@@ -29,7 +29,8 @@ import BookingForm from './components/BookingForm';
 import BookingList from './components/BookingList';
 import MaintenanceAdmin from './components/MaintenanceAdmin';
 import MaintenanceReportPage from './pages/MaintenanceReportPage';
-
+import TimetableViewer from './pages/TimetableViewer';
+import TimetableImport from './pages/TimetableImport';
 
 function App() {
   return (
@@ -119,6 +120,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <MaintenanceAdmin />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/timetable"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+              <TimetableViewer />
+            </ProtectedRoute>
+          }
+        />
+                <Route
+          path="/admin/timetables/import"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <TimetableImport />
             </ProtectedRoute>
           }
         />
