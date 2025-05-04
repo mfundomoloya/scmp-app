@@ -27,6 +27,9 @@ import RoomList from './components/RoomList';
 import RoomImport from './components/RoomImport';
 import BookingForm from './components/BookingForm';
 import BookingList from './components/BookingList';
+import MaintenanceAdmin from './components/MaintenanceAdmin';
+import MaintenanceReportPage from './pages/MaintenanceReportPage';
+
 
 function App() {
   return (
@@ -103,6 +106,22 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+          path="/maintenance/report"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+              <MaintenanceReportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/maintenance"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <MaintenanceAdmin />
+            </ProtectedRoute>
+          }
+        />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>

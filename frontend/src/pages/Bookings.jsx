@@ -3,6 +3,7 @@ import { AuthContext } from '../context/AuthContext';
 import BookingForm from '../components/BookingForm';
 import BookingList from '../components/BookingList';
 
+
 const Bookings = () => {
   const { user } = useContext(AuthContext);
   const [refreshKey, setRefreshKey] = useState(0);
