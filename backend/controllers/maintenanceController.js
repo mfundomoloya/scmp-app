@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
   const User = require('../models/User');
   const Room = require('../models/Room');
 
-  // POST /api/maintenance
   const createMaintenanceReport = async (req, res) => {
     try {
       const { roomId, description } = req.body;
@@ -51,7 +50,6 @@ const mongoose = require('mongoose');
     }
   };
 
-  // GET /api/maintenance
   const getMaintenanceReports = async (req, res) => {
     try {
       console.log('Get maintenance reports: req.user:', JSON.stringify(req.user, null, 2));
@@ -80,7 +78,6 @@ const mongoose = require('mongoose');
     }
   };
 
-  // PUT /api/maintenance/:id/status
   const updateMaintenanceReportStatus = async (req, res) => {
     try {
       const { status } = req.body;
@@ -111,7 +108,6 @@ const mongoose = require('mongoose');
     }
   };
 
-  // PUT /api/maintenance/room/:roomId
   const updateRoomMaintenance = async (req, res) => {
     try {
       const { roomId } = req.params;
