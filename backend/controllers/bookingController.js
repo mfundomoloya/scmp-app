@@ -91,13 +91,46 @@ const createBooking = async (req, res) => {
 
 const getBookings = async (req, res) => {
   try {
-    console.log('Fetching bookings for:', { userId: req.user.id, role: req.user.role });
-    const bookings = req.user.role === 'admin'
-      ? await Booking.find().populate('userId', 'name email')
-      : await Booking.find({ userId: req.user.id });
+    console.log('Get bookings: req.user:', JSON.stringify(req.user, null, 2));
+    if (!req.user || !req.user.id || !req.user.email) {
+      console.error('Get bookings: Missing req.user, req.user.id, or req.user.email');
+      return res.status(401).json({ msg: 'Invalid user authentication' });
+    }
+    let query;
+    if (req.user.role === 'admin') {
+      query = {};
+    } else {
+      console.log('Get bookings: Querying by email for student:', req.user.email);
+      const user = await User.findOne({ email: req.user.email });
+      if (!user) {
+        console.error('Get bookings: User not found for email:', req.user.email);
+        // Fallback: Raw MongoDB query
+        console.log('Get bookings: Attempting raw MongoDB query by userId:', req.user.id);
+        const bookings = await Booking.find({ userId: new mongoose.Types.ObjectId(req.user.id) })
+          .populate('userId', 'name email')
+          .sort({ date: -1 });
+        console.log('Get bookings: raw MongoDB query result:', JSON.stringify(bookings, null, 2));
+        if (bookings.length > 0) {
+          console.log('Get bookings: Found bookings via raw query');
+          res.json(bookings);
+          return;
+        }
+        return res.status(400).json({ msg: 'User not found and no bookings found' });
+      }
+      console.log('Get bookings: Found user:', user._id.toString());
+      query = { userId: user._id };
+    }
+    console.log('Get bookings: query:', JSON.stringify(query));
+    const bookings = await Booking.find(query)
+      .populate('userId', 'name email')
+      .sort({ date: -1 });
+    console.log('Get bookings: raw query result:', JSON.stringify(bookings, null, 2));
+    console.log('Get bookings: rooms:', bookings.map(b => b.room));
+    console.log('Get bookings: count:', bookings.length);
+    console.log('Get bookings: userIds:', bookings.map(b => b.userId?._id?.toString()));
     res.json(bookings);
   } catch (err) {
-    console.error('Get bookings error:', err);
+    console.error('Error fetching bookings:', err);
     res.status(500).json({ msg: 'Server error' });
   }
 };
