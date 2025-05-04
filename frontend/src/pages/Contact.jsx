@@ -160,6 +160,7 @@ const Contact = () => {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
+                    placeholder="Name"
                   />
                 </div>
 
@@ -178,6 +179,7 @@ const Contact = () => {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
+                    placeholder="Email"
                   />
                 </div>
 
@@ -196,6 +198,7 @@ const Contact = () => {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
+                    placeholder="Subject"
                   />
                 </div>
 
@@ -214,12 +217,13 @@ const Contact = () => {
                     rows="5"
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
+                    placeholder="Your Message"
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md transition duration-150"
+                  className="bg-blue-600 hover:bg-blue-700 text-gray-700 font-semibold py-2 px-6 rounded-md transition duration-150"
                 >
                   Send Message
                 </button>
