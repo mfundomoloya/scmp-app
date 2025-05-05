@@ -1,0 +1,265 @@
+import { useState, useEffect, useContext } from 'react';
+  import { AuthContext } from '../context/AuthContext';
+  import axios from 'axios';
+
+  const TimetableAdmin = () => {
+    const { user } = useContext(AuthContext);
+    const [timetables, setTimetables] = useState([]);
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [editing, setEditing] = useState(null);
+    const [formData, setFormData] = useState({
+      courseName: '',
+      roomName: '',
+      day: '',
+      startTime: '',
+      endTime: '',
+      userEmails: '',
+    });
+
+    console.log('TimetableAdmin: Component mounted');
+    console.log('TimetableAdmin: User:', JSON.stringify(user, null, 2));
+
+    useEffect(() => {
+      const fetchTimetables = async () => {
+        setLoading(true);
+        try {
+          console.log('TimetableAdmin: Fetching timetables');
+          const token = localStorage.getItem('token');
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/timetable/all`, {
+            headers: { 'x-auth-token': token },
+          });
+          console.log('TimetableAdmin: Fetched timetables:', response.data);
+          setTimetables(response.data);
+          setError(null);
+        } catch (err) {
+          console.error('TimetableAdmin: Error fetching timetables:', err);
+          setError(err.response?.data?.msg || 'Failed to load timetables. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      if (user && user.role === 'admin') {
+        fetchTimetables();
+      }
+    }, [user]);
+
+    const handleEdit = (timetable) => {
+      setEditing(timetable._id);
+      setFormData({
+        courseName: timetable.courseName,
+        roomName: timetable.roomId.name,
+        day: timetable.day,
+        startTime: new Date(timetable.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        endTime: new Date(timetable.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        userEmails: timetable.userIds.map(u => u.email).join(', '),
+      });
+    };
+
+    const handleUpdate = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      try {
+        console.log('TimetableAdmin: Updating timetable:', editing, formData);
+        const token = localStorage.getItem('token');
+        const response = await axios.put(
+          `${import.meta.env.VITE_API_URL}/api/timetable/${editing}`,
+          formData,
+          { headers: { 'x-auth-token': token } }
+        );
+        console.log('TimetableAdmin: Updated timetable:', response.data);
+        setTimetables(timetables.map(t => (t._id === editing ? response.data : t)));
+        setEditing(null);
+        setError(null);
+      } catch (err) {
+        console.error('TimetableAdmin: Error updating timetable:', err);
+        setError(err.response?.data?.msg || 'Failed to update timetable. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleDelete = async (id) => {
+      if (!window.confirm('Are you sure you want to delete this timetable?')) return;
+      setLoading(true);
+      try {
+        console.log('TimetableAdmin: Deleting timetable:', id);
+        const token = localStorage.getItem('token');
+        await axios.delete(`${import.meta.env.VITE_API_URL}/api/timetable/${id}`, {
+          headers: { 'x-auth-token': token },
+        });
+        console.log('TimetableAdmin: Deleted timetable:', id);
+        setTimetables(timetables.filter(t => t._id !== id));
+        setError(null);
+      } catch (err) {
+        console.error('TimetableAdmin: Error deleting timetable:', err);
+        setError(err.response?.data?.msg || 'Failed to delete timetable. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!user || user.role !== 'admin') {
+      return <div className="text-white text-center mt-8">Access denied. Admins only.</div>;
+    }
+
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold mb-8 text-center text-white">Manage Timetables</h1>
+        {error && (
+          <div className="bg-red-900 text-white p-3 rounded mb-4">{error}</div>
+        )}
+        {loading ? (
+          <div className="flex justify-center items-center p-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : timetables.length === 0 ? (
+          <div className="bg-gray-800 bg-opacity-70 rounded-lg p-8 text-center text-white">
+            <p className="text-xl">No timetables found.</p>
+          </div>
+        ) : (
+          <div className="bg-gray-900 bg-opacity-70 rounded-lg p-6">
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-black bg-opacity-50 rounded-lg">
+                <thead>
+                  <tr className="bg-gray-800 text-left">
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Course</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Room</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Day</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Time</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Users</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {timetables.map((timetable) => (
+                    <tr key={timetable._id} className="hover:bg-gray-800">
+                      <td className="px-6 py-4">{timetable.courseName}</td>
+                      <td className="px-6 py-4">{timetable.roomId?.name}</td>
+                      <td className="px-6 py-4">{timetable.day}</td>
+                      <td className="px-6 py-4">
+                        {new Date(timetable.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                        {new Date(timetable.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-6 py-4">{timetable.userIds.map(u => u.email).join(', ')}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleEdit(timetable)}
+                          className="text-blue-500 hover:text-blue-700 mr-4"
+                          disabled={loading}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(timetable._id)}
+                          className="text-red-500 hover:text-red-700"
+                          disabled={loading}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {editing && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-gray-900 rounded-lg p-6 w-full max-w-lg">
+              <h2 className="text-2xl font-bold mb-4 text-white">Edit Timetable</h2>
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Course Name</label>
+                  <input
+                    type="text"
+                    value={formData.courseName}
+                    onChange={(e) => setFormData({ ...formData, courseName: e.target.value })}
+                    className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Room Name</label>
+                  <input
+                    type="text"
+                    value={formData.roomName}
+                    onChange={(e) => setFormData({ ...formData, roomName: e.target.value })}
+                    className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Day</label>
+                  <select
+                    value={formData.day}
+                    onChange={(e) => setFormData({ ...formData, day: e.target.value })}
+                    className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
+                    required
+                  >
+                    <option value="">Select Day</option>
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                      <option key={day} value={day}>{day}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Start Time (HH:MM)</label>
+                  <input
+                    type="text"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    placeholder="09:00"
+                    className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">End Time (HH:MM)</label>
+                  <input
+                    type="text"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    placeholder="10:30"
+                    className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">User Emails (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={formData.userEmails}
+                    onChange={(e) => setFormData({ ...formData, userEmails: e.target.value })}
+                    placeholder="user1@scmp.com, user2@scmp.com"
+                    className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(null)}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    disabled={loading}
+                  >
+                    {loading ? 'Updating...' : 'Update'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  export default TimetableAdmin;    
