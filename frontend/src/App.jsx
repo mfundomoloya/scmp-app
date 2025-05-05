@@ -31,6 +31,7 @@ import MaintenanceAdmin from './components/MaintenanceAdmin';
 import MaintenanceReportPage from './pages/MaintenanceReportPage';
 import TimetableViewer from './pages/TimetableViewer';
 import TimetableImport from './pages/TimetableImport';
+import TimetableAdmin from './pages/TimetableAdmin';
 
 function App() {
   return (
@@ -136,6 +137,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <TimetableImport />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/admin/timetables"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <TimetableAdmin />
             </ProtectedRoute>
           }
         />
