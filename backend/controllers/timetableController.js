@@ -4,8 +4,45 @@ const mongoose = require('mongoose');
   const Room = require('../models/Room');
 const csvParser = require('csv-parser');
   const { Readable } = require('stream');
+  const nodemailer = require('nodemailer');
 
-  // GET /api/timetable
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+  const sendTimetableNotification = async (users, timetable, action) => {
+    try {
+      const mailOptions = {
+        from: process.env.EMAIL_USER, 
+        to: users.map(u => u.email),
+        subject: `Timetable ${action}: ${timetable.courseName}`,
+        text: `
+          Dear ${action === 'Created' ? 'Student/Lecturer' : 'User'},
+          
+          A timetable has been ${action.toLowerCase()}:
+          - Course: ${timetable.courseName}
+          - Room: ${timetable.roomId.name}
+          - Day: ${timetable.day}
+          - Time: ${new Date(timetable.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                  ${new Date(timetable.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          
+          Please check your timetable in the Smart Campus Services Portal.
+          
+          Regards,
+          Smart Campus Team
+        `,
+      };
+      await transporter.sendMail(mailOptions);
+      console.log(`Notification sent to: ${users.map(u => u.email).join(', ')}`);
+    } catch (err) {
+      console.error('Error sending notification:', err);
+    }
+  };
+
   const getUserTimetable = async (req, res) => {
     try {
       console.log('Get user timetable: req.user:', JSON.stringify(req.user, null, 2));
@@ -29,7 +66,6 @@ const csvParser = require('csv-parser');
     }
   };
 
-  // POST /api/timetable/import
   const importTimetables = async (req, res) => {
     try {
       console.log('Import timetables: req.user:', JSON.stringify(req.user, null, 2));
@@ -48,7 +84,7 @@ const csvParser = require('csv-parser');
       const errors = [];
       let rowIndex = 0;
 
-      const parser = csvParser({
+      const parser = csv.parse({
         columns: true,
         skip_empty_lines: true,
         trim: true,
@@ -60,10 +96,9 @@ const csvParser = require('csv-parser');
       for await (const row of parser) {
         rowIndex++;
         try {
-          const { courseName, roomName, day, startTime, endTime, userEmails } = row;
+          const { courseName, roomName, day, startTime, endTime, lecturerEmails } = row;
           console.log('Import timetables: Processing row:', row);
 
-          // Validate inputs
           if (!courseName || courseName.length < 3) {
             errors.push(`Row ${rowIndex}: Invalid course name`);
             continue;
@@ -80,18 +115,25 @@ const csvParser = require('csv-parser');
             continue;
           }
 
-          const emailArray = userEmails ? userEmails.split(',').map(email => email.trim()) : [];
-          if (emailArray.length === 0) {
-            errors.push(`Row ${rowIndex}: At least one user email is required`);
+          // Fetch all students
+          const students = await User.find({ role: 'student' });
+          if (students.length === 0) {
+            errors.push(`Row ${rowIndex}: No students found`);
             continue;
           }
 
-          const users = await User.find({ email: { $in: emailArray } });
-          if (users.length !== emailArray.length) {
-            const foundEmails = users.map(u => u.email);
-            const missingEmails = emailArray.filter(e => !foundEmails.includes(e));
-            errors.push(`Row ${rowIndex}: Users not found: ${missingEmails.join(', ')}`);
-            continue;
+          // Handle optional lecturers
+          let users = [...students];
+          if (lecturerEmails) {
+            const emailArray = lecturerEmails.split(',').map(email => email.trim());
+            const lecturers = await User.find({ email: { $in: emailArray }, role: 'lecturer' });
+            if (lecturers.length !== emailArray.length) {
+              const foundEmails = lecturers.map(u => u.email);
+              const missingEmails = emailArray.filter(e => !foundEmails.includes(e));
+              errors.push(`Row ${rowIndex}: Lecturers not found: ${missingEmails.join(', ')}`);
+              continue;
+            }
+            users = [...students, ...lecturers];
           }
 
           const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -108,7 +150,6 @@ const csvParser = require('csv-parser');
             continue;
           }
 
-          // Check for overlapping schedules
           const overlapping = await Timetable.findOne({
             roomId: room._id,
             day,
@@ -123,7 +164,6 @@ const csvParser = require('csv-parser');
             continue;
           }
 
-          // Create timetable entry
           const timetable = new Timetable({
             courseName,
             roomId: room._id,
@@ -135,6 +175,9 @@ const csvParser = require('csv-parser');
 
           await timetable.save();
           results.push(timetable);
+
+          // Send notification
+          await sendTimetableNotification(users, { ...timetable.toObject(), roomId: { name: roomName } }, 'Created');
         } catch (err) {
           console.error(`Import timetables: Error at row ${rowIndex}:`, err);
           errors.push(`Row ${rowIndex}: Failed to process - ${err.message}`);
@@ -185,7 +228,7 @@ const csvParser = require('csv-parser');
         return res.status(403).json({ msg: 'Unauthorized' });
       }
 
-      const { courseName, roomName, day, startTime, endTime, userEmails } = req.body;
+      const { courseName, roomName, day, startTime, endTime, lecturerEmails } = req.body;
 
       if (!courseName || courseName.length < 3) {
         return res.status(400).json({ msg: 'Invalid course name' });
@@ -200,16 +243,23 @@ const csvParser = require('csv-parser');
         return res.status(400).json({ msg: `Room not found: ${roomName}` });
       }
 
-      const emailArray = userEmails ? userEmails.split(',').map(email => email.trim()) : [];
-      if (emailArray.length === 0) {
-        return res.status(400).json({ msg: 'At least one user email is required' });
+      // Fetch all students
+      const students = await User.find({ role: 'student' });
+      if (students.length === 0) {
+        return res.status(400).json({ msg: 'No students found' });
       }
 
-      const users = await User.find({ email: { $in: emailArray } });
-      if (users.length !== emailArray.length) {
-        const foundEmails = users.map(u => u.email);
-        const missingEmails = emailArray.filter(e => !foundEmails.includes(e));
-        return res.status(400).json({ msg: `Users not found: ${missingEmails.join(', ')}` });
+      // Handle optional lecturers
+      let users = [...students];
+      if (lecturerEmails) {
+        const emailArray = lecturerEmails.split(',').map(email => email.trim());
+        const lecturers = await User.find({ email: { $in: emailArray }, role: 'lecturer' });
+        if (lecturers.length !== emailArray.length) {
+          const foundEmails = lecturers.map(u => u.email);
+          const missingEmails = emailArray.filter(e => !foundEmails.includes(e));
+          return res.status(400).json({ msg: `Lecturers not found: ${missingEmails.join(', ')}` });
+        }
+        users = [...students, ...lecturers];
       }
 
       const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -252,6 +302,10 @@ const csvParser = require('csv-parser');
 
       await timetable.save();
       console.log('Update timetable: Updated:', JSON.stringify(timetable, null, 2));
+
+      // Send notification
+      await sendTimetableNotification(users, { ...timetable.toObject(), roomId: { name: roomName } }, 'Updated');
+
       res.json(timetable);
     } catch (err) {
       console.error('Error updating timetable:', err);
@@ -283,4 +337,95 @@ const csvParser = require('csv-parser');
     }
   };
 
-  module.exports = { getUserTimetable, importTimetables, getAllTimetables, updateTimetable, deleteTimetable };
+  const createTimetable = async (req, res) => {
+    try {
+      console.log('Create timetable: req.user:', JSON.stringify(req.user, null, 2));
+      console.log('Create timetable: req.body:', JSON.stringify(req.body, null, 2));
+
+      if (req.user.role !== 'admin') {
+        console.error('Create timetable: Unauthorized');
+        return res.status(403).json({ msg: 'Unauthorized' });
+      }
+
+      const { courseName, roomName, day, startTime, endTime, lecturerEmails } = req.body;
+
+      if (!courseName || courseName.length < 3) {
+        return res.status(400).json({ msg: 'Invalid course name' });
+      }
+
+      if (!['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].includes(day)) {
+        return res.status(400).json({ msg: 'Invalid day' });
+      }
+
+      const room = await Room.findOne({ name: roomName });
+      if (!room) {
+        return res.status(400).json({ msg: `Room not found: ${roomName}` });
+      }
+
+      // Fetch all students
+      const students = await User.find({ role: 'student' });
+      if (students.length === 0) {
+        return res.status(400).json({ msg: 'No students found' });
+      }
+
+      // Handle optional lecturers
+      let users = [...students];
+      if (lecturerEmails) {
+        const emailArray = lecturerEmails.split(',').map(email => email.trim());
+        const lecturers = await User.find({ email: { $in: emailArray }, role: 'lecturer' });
+        if (lecturers.length !== emailArray.length) {
+          const foundEmails = lecturers.map(u => u.email);
+          const missingEmails = emailArray.filter(e => !foundEmails.includes(e));
+          return res.status(400).json({ msg: `Lecturers not found: ${missingEmails.join(', ')}` });
+        }
+        users = [...students, ...lecturers];
+      }
+
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const [endHour, endMinute] = endTime.split(':').map(Number);
+      const startDate = new Date(2025, 0, 1, startHour, startMinute);
+      const endDate = new Date(2025, 0, 1, endHour, endMinute);
+
+      if (isNaN(startDate) || isNaN(endDate)) {
+        return res.status(400).json({ msg: 'Invalid time format' });
+      }
+      if (startDate >= endDate) {
+        return res.status(400).json({ msg: 'Start time must be before end time' });
+      }
+
+      const overlapping = await Timetable.findOne({
+        roomId: room._id,
+        day,
+        $or: [
+          { startTime: { $lt: endDate, $gte: startDate } },
+          { endTime: { $gt: startDate, $lte: endDate } },
+          { startTime: { $lte: startDate }, endTime: { $gte: endDate } },
+        ],
+      });
+      if (overlapping) {
+        return res.status(400).json({ msg: 'Schedule conflicts with existing timetable' });
+      }
+
+      const timetable = new Timetable({
+        courseName,
+        roomId: room._id,
+        userIds: users.map(u => u._id),
+        startTime: startDate,
+        endTime: endDate,
+        day,
+      });
+
+      await timetable.save();
+      console.log('Create timetable: Created:', JSON.stringify(timetable, null, 2));
+
+      // Send notification
+      await sendTimetableNotification(users, { ...timetable.toObject(), roomId: { name: roomName } }, 'Created');
+
+      res.status(201).json(timetable);
+    } catch (err) {
+      console.error('Error creating timetable:', err);
+      res.status(500).json({ msg: 'Server error' });
+    }
+  };
+
+  module.exports = { getUserTimetable, importTimetables, getAllTimetables, updateTimetable, deleteTimetable, createTimetable };

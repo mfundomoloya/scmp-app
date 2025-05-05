@@ -8,13 +8,14 @@ import { useState, useEffect, useContext } from 'react';
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [editing, setEditing] = useState(null);
+    const [creating, setCreating] = useState(false);
     const [formData, setFormData] = useState({
       courseName: '',
       roomName: '',
       day: '',
       startTime: '',
       endTime: '',
-      userEmails: '',
+      lecturerEmails: '',
     });
 
     console.log('TimetableAdmin: Component mounted');
@@ -44,6 +45,18 @@ import { useState, useEffect, useContext } from 'react';
       }
     }, [user]);
 
+    const handleCreate = () => {
+      setCreating(true);
+      setFormData({
+        courseName: '',
+        roomName: '',
+        day: '',
+        startTime: '',
+        endTime: '',
+        lecturerEmails: '',
+      });
+    };
+
     const handleEdit = (timetable) => {
       setEditing(timetable._id);
       setFormData({
@@ -52,8 +65,31 @@ import { useState, useEffect, useContext } from 'react';
         day: timetable.day,
         startTime: new Date(timetable.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         endTime: new Date(timetable.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        userEmails: timetable.userIds.map(u => u.email).join(', '),
+        lecturerEmails: timetable.userIds.filter(u => u.role === 'lecturer').map(u => u.email).join(', '),
       });
+    };
+
+    const handleCreateSubmit = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      try {
+        console.log('TimetableAdmin: Creating timetable:', formData);
+        const token = localStorage.getItem('token');
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/timetable`,
+          formData,
+          { headers: { 'x-auth-token': token } }
+        );
+        console.log('TimetableAdmin: Created timetable:', response.data);
+        setTimetables([...timetables, response.data]);
+        setCreating(false);
+        setError(null);
+      } catch (err) {
+        console.error('TimetableAdmin: Error creating timetable:', err);
+        setError(err.response?.data?.msg || 'Failed to create timetable. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     };
 
     const handleUpdate = async (e) => {
@@ -106,6 +142,15 @@ import { useState, useEffect, useContext } from 'react';
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8 text-center text-white">Manage Timetables</h1>
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            disabled={loading}
+          >
+            Create Timetable
+          </button>
+        </div>
         {error && (
           <div className="bg-red-900 text-white p-3 rounded mb-4">{error}</div>
         )}
@@ -165,11 +210,11 @@ import { useState, useEffect, useContext } from 'react';
             </div>
           </div>
         )}
-        {editing && (
+        {(editing || creating) && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-gray-900 rounded-lg p-6 w-full max-w-lg">
-              <h2 className="text-2xl font-bold mb-4 text-white">Edit Timetable</h2>
-              <form onSubmit={handleUpdate} className="space-y-4">
+              <h2 className="text-2xl font-bold mb-4 text-white">{editing ? 'Edit Timetable' : 'Create Timetable'}</h2>
+              <form onSubmit={editing ? handleUpdate : handleCreateSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300">Course Name</label>
                   <input
@@ -227,20 +272,19 @@ import { useState, useEffect, useContext } from 'react';
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">User Emails (comma-separated)</label>
+                  <label className="block text-sm font-medium text-gray-300">Lecturer Emails (comma-separated, optional)</label>
                   <input
                     type="text"
-                    value={formData.userEmails}
-                    onChange={(e) => setFormData({ ...formData, userEmails: e.target.value })}
-                    placeholder="user1@scmp.com, user2@scmp.com"
+                    value={formData.lecturerEmails}
+                    onChange={(e) => setFormData({ ...formData, lecturerEmails: e.target.value })}
+                    placeholder="lecturer1@scmp.com, lecturer2@scmp.com"
                     className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
-                    required
                   />
                 </div>
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"
-                    onClick={() => setEditing(null)}
+                    onClick={() => { setEditing(null); setCreating(false); }}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
                     disabled={loading}
                   >
@@ -251,7 +295,7 @@ import { useState, useEffect, useContext } from 'react';
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
                     disabled={loading}
                   >
-                    {loading ? 'Updating...' : 'Update'}
+                    {loading ? (editing ? 'Updating...' : 'Creating...') : (editing ? 'Update' : 'Create')}
                   </button>
                 </div>
               </form>
@@ -262,4 +306,4 @@ import { useState, useEffect, useContext } from 'react';
     );
   };
 
-  export default TimetableAdmin;    
+  export default TimetableAdmin;
