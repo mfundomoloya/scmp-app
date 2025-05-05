@@ -32,6 +32,7 @@ import MaintenanceReportPage from './pages/MaintenanceReportPage';
 import TimetableViewer from './pages/TimetableViewer';
 import TimetableImport from './pages/TimetableImport';
 import TimetableAdmin from './pages/TimetableAdmin';
+import ProfileSettings from './pages/ProfileSettings';
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/profile" element={<ProfileSettings />} />
             <Route
               path="/student"
               element={

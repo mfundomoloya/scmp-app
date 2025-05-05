@@ -83,9 +83,9 @@ import { useState, useContext } from 'react';
                 disabled={loading}
               />
               <p className="mt-2 text-sm text-gray-400">
-                CSV format: courseName,roomName,day,startTime,endTime,lecturerEmails
+                CSV format: courseCode,subject,roomName,day,startTime,endTime,lecturerEmails
                 <br />
-                Example: Mathematics 101,Seminar Room B,Monday,09:00,10:30,lecturer1@scmp.com
+                Example: CS101,Programming,Seminar Room B,Monday,09:00,10:30,lecturer1@scmp.com
               </p>
             </div>
             <button

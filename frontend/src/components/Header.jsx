@@ -9,7 +9,9 @@ import { useContext, useState, useEffect, useRef } from 'react';
     const navigate = useNavigate();
     const location = useLocation();
     const [showNotifications, setShowNotifications] = useState(false);
-    const dropdownRef = useRef(null);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const notificationRef = useRef(null);
+    const profileRef = useRef(null);
 
     console.log(
       'Header: User:',
@@ -17,14 +19,22 @@ import { useContext, useState, useEffect, useRef } from 'react';
     );
     console.log('Header: Notifications:', notifications);
     console.log('Header: Show Notifications:', showNotifications);
+    console.log('Header: Show Profile Dropdown:', showProfileDropdown);
 
     const handleLogout = () => {
+      console.log('Header: Logging out');
       logout();
       navigate('/login');
     };
 
     const toggleNotifications = () => {
       setShowNotifications((prev) => !prev);
+      setShowProfileDropdown(false); // Close profile dropdown if open
+    };
+
+    const toggleProfileDropdown = () => {
+      setShowProfileDropdown((prev) => !prev);
+      setShowNotifications(false); // Close notification dropdown if open
     };
 
     const handleBookingsClick = () => {
@@ -42,8 +52,17 @@ import { useContext, useState, useEffect, useRef } from 'react';
 
     useEffect(() => {
       const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        if (
+          notificationRef.current &&
+          !notificationRef.current.contains(event.target)
+        ) {
           setShowNotifications(false);
+        }
+        if (
+          profileRef.current &&
+          !profileRef.current.contains(event.target)
+        ) {
+          setShowProfileDropdown(false);
         }
       };
       document.addEventListener('mousedown', handleClickOutside);
@@ -175,7 +194,7 @@ import { useContext, useState, useEffect, useRef } from 'react';
                       </li>
                     </>
                   )}
-                  <li ref={dropdownRef}>
+                  <li ref={notificationRef}>
                     <div className="relative">
                       <button
                         onClick={toggleNotifications}
@@ -226,13 +245,44 @@ import { useContext, useState, useEffect, useRef } from 'react';
                       )}
                     </div>
                   </li>
-                  <li>
-                    <button
-                      onClick={handleLogout}
-                      className="text-white border border-white hover:bg-white hover:text-black px-4 py-1.5 rounded transition duration-150"
-                    >
-                      Logout
-                    </button>
+                  <li ref={profileRef}>
+                    <div className="relative">
+                      <button
+                        onClick={toggleProfileDropdown}
+                        className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6 mr-2"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        {user.name}
+                      </button>
+                      {showProfileDropdown && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-lg shadow-lg py-2 z-50">
+                          <Link
+                            to="/profile"
+                            className="block px-4 py-2 hover:bg-gray-100"
+                            onClick={() => setShowProfileDropdown(false)}
+                          >
+                            Profile Settings
+                          </Link>
+                          <button
+                            onClick={handleLogout}
+                            className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                          >
+                            Logout
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </li>
                 </>
               ) : (
