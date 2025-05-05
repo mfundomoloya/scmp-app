@@ -14,6 +14,7 @@ const timetableRoutes = require('./routes/timetableRoutes');
 const announcementsRoutes = require('./routes/announcementsRoutes');
 const notificationRoutes = require('./routes/notification');
 const roomRoutes = require('./routes/roomsRoutes');
+const courseRoutes = require('./routes/courseRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -47,6 +48,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/timetable', timetableRoutes);
+app.use('/api/courses', courseRoutes);
 
 // Socket.IO setup
 io.on('connection', (socket) => {

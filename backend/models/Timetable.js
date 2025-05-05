@@ -1,12 +1,17 @@
 const mongoose = require('mongoose');
 
   const timetableSchema = new mongoose.Schema({
-    courseName: {
+    courseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Course',
+      required: true,
+    },
+    subject: {
       type: String,
       required: true,
       trim: true,
       minlength: 3,
-      maxlength: 100,
+      maxlength: 50,
     },
     roomId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -28,15 +33,13 @@ const mongoose = require('mongoose');
     },
     day: {
       type: String,
-      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
       required: true,
     },
     createdAt: {
       type: Date,
       default: Date.now,
     },
-  });
-
-  timetableSchema.index({ roomId: 1, startTime: 1, endTime: 1 });
+  }, { timestamps: true });
 
   module.exports = mongoose.model('Timetable', timetableSchema);

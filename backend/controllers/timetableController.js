@@ -1,214 +1,166 @@
-const mongoose = require('mongoose');
-  const Timetable = require('../models/Timetable');
-  const User = require('../models/User');
+const Timetable = require('../models/Timetable');
+  const Course = require('../models/Course');
   const Room = require('../models/Room');
-const csvParser = require('csv-parser');
-  const { Readable } = require('stream');
+  const User = require('../models/User');
   const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+  // Configure nodemailer
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
-  const sendTimetableNotification = async (users, timetable, action) => {
+  // POST /api/timetable
+  const createTimetable = async (req, res) => {
     try {
-      const mailOptions = {
-        from: process.env.EMAIL_USER, 
-        to: users.map(u => u.email),
-        subject: `Timetable ${action}: ${timetable.courseName}`,
-        text: `
-          Dear ${action === 'Created' ? 'Student/Lecturer' : 'User'},
-          
-          A timetable has been ${action.toLowerCase()}:
-          - Course: ${timetable.courseName}
-          - Room: ${timetable.roomId.name}
-          - Day: ${timetable.day}
-          - Time: ${new Date(timetable.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                  ${new Date(timetable.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          
-          Please check your timetable in the Smart Campus Services Portal.
-          
-          Regards,
-          Smart Campus Team
-        `,
-      };
-      await transporter.sendMail(mailOptions);
-      console.log(`Notification sent to: ${users.map(u => u.email).join(', ')}`);
-    } catch (err) {
-      console.error('Error sending notification:', err);
-    }
-  };
-
-  const getUserTimetable = async (req, res) => {
-    try {
-      console.log('Get user timetable: req.user:', JSON.stringify(req.user, null, 2));
-
-      const user = await User.findOne({ email: req.user.email });
-      if (!user) {
-        console.error('Get user timetable: User not found:', req.user.email);
-        return res.status(400).json({ msg: 'User not found' });
-      }
-
-      const timetables = await Timetable.find({ userIds: user._id })
-        .populate('roomId', 'name maintenance')
-        .sort({ startTime: 1 });
-
-      console.log('Get user timetable: count:', timetables.length);
-      console.log('Get user timetable: results:', JSON.stringify(timetables, null, 2));
-      res.json(timetables);
-    } catch (err) {
-      console.error('Error fetching user timetable:', err);
-      res.status(500).json({ msg: 'Server error' });
-    }
-  };
-
-  const importTimetables = async (req, res) => {
-    try {
-      console.log('Import timetables: req.user:', JSON.stringify(req.user, null, 2));
+      console.log('Create timetable: req.body:', JSON.stringify(req.body, null, 2));
+      console.log('Create timetable: req.user:', JSON.stringify(req.user, null, 2));
 
       if (req.user.role !== 'admin') {
-        console.error('Import timetables: Unauthorized');
+        console.error('Create timetable: Unauthorized');
         return res.status(403).json({ msg: 'Unauthorized' });
       }
 
-      if (!req.file) {
-        console.error('Import timetables: No file uploaded');
-        return res.status(400).json({ msg: 'CSV file is required' });
+      const { courseCode, subject, roomName, day, startTime, endTime, lecturerEmails } = req.body;
+
+      if (!courseCode || !subject || !roomName || !day || !startTime || !endTime) {
+        console.error('Create timetable: Missing required fields');
+        return res.status(400).json({ msg: 'All fields are required' });
       }
 
-      const results = [];
-      const errors = [];
-      let rowIndex = 0;
+      // Validate course
+      const course = await Course.findOne({ code: courseCode });
+      if (!course) {
+        console.error(`Create timetable: Course not found: ${courseCode}`);
+        return res.status(404).json({ msg: `Course not found: ${courseCode}` });
+      }
+      if (!course.subjects.includes(subject)) {
+        console.error(`Create timetable: Subject not found in course: ${subject}`);
+        return res.status(400).json({ msg: `Subject not found in course: ${subject}` });
+      }
 
-      const parser = csv.parse({
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-      });
+      // Validate room
+      const room = await Room.findOne({ name: roomName });
+      if (!room) {
+        console.error(`Create timetable: Room not found: ${roomName}`);
+        return res.status(404).json({ msg: `Room not found: ${roomName}` });
+      }
 
-      const stream = Readable.from(req.file.buffer.toString());
-      stream.pipe(parser);
+      // Find students enrolled in the course
+      console.log(`Create timetable: Finding students for course: ${courseCode}`);
+      const students = await User.find({ courseCodes: courseCode, role: 'student' }).select('_id email role');
+      console.log(`Create timetable: Found ${students.length} students:`, JSON.stringify(students, null, 2));
+      if (students.length === 0) {
+        console.warn(`Create timetable: No students found for course: ${courseCode}`);
+      }
 
-      for await (const row of parser) {
-        rowIndex++;
-        try {
-          const { courseName, roomName, day, startTime, endTime, lecturerEmails } = row;
-          console.log('Import timetables: Processing row:', row);
-
-          if (!courseName || courseName.length < 3) {
-            errors.push(`Row ${rowIndex}: Invalid course name`);
-            continue;
-          }
-
-          if (!['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].includes(day)) {
-            errors.push(`Row ${rowIndex}: Invalid day`);
-            continue;
-          }
-
-          const room = await Room.findOne({ name: roomName });
-          if (!room) {
-            errors.push(`Row ${rowIndex}: Room not found: ${roomName}`);
-            continue;
-          }
-
-          // Fetch all students
-          const students = await User.find({ role: 'student' });
-          if (students.length === 0) {
-            errors.push(`Row ${rowIndex}: No students found`);
-            continue;
-          }
-
-          // Handle optional lecturers
-          let users = [...students];
-          if (lecturerEmails) {
-            const emailArray = lecturerEmails.split(',').map(email => email.trim());
-            const lecturers = await User.find({ email: { $in: emailArray }, role: 'lecturer' });
-            if (lecturers.length !== emailArray.length) {
-              const foundEmails = lecturers.map(u => u.email);
-              const missingEmails = emailArray.filter(e => !foundEmails.includes(e));
-              errors.push(`Row ${rowIndex}: Lecturers not found: ${missingEmails.join(', ')}`);
-              continue;
-            }
-            users = [...students, ...lecturers];
-          }
-
-          const [startHour, startMinute] = startTime.split(':').map(Number);
-          const [endHour, endMinute] = endTime.split(':').map(Number);
-          const startDate = new Date(2025, 0, 1, startHour, startMinute);
-          const endDate = new Date(2025, 0, 1, endHour, endMinute);
-
-          if (isNaN(startDate) || isNaN(endDate)) {
-            errors.push(`Row ${rowIndex}: Invalid time format`);
-            continue;
-          }
-          if (startDate >= endDate) {
-            errors.push(`Row ${rowIndex}: Start time must be before end time`);
-            continue;
-          }
-
-          const overlapping = await Timetable.findOne({
-            roomId: room._id,
-            day,
-            $or: [
-              { startTime: { $lt: endDate, $gte: startDate } },
-              { endTime: { $gt: startDate, $lte: endDate } },
-              { startTime: { $lte: startDate }, endTime: { $gte: endDate } },
-            ],
-          });
-          if (overlapping) {
-            errors.push(`Row ${rowIndex}: Schedule conflicts with existing timetable`);
-            continue;
-          }
-
-          const timetable = new Timetable({
-            courseName,
-            roomId: room._id,
-            userIds: users.map(u => u._id),
-            startTime: startDate,
-            endTime: endDate,
-            day,
-          });
-
-          await timetable.save();
-          results.push(timetable);
-
-          // Send notification
-          await sendTimetableNotification(users, { ...timetable.toObject(), roomId: { name: roomName } }, 'Created');
-        } catch (err) {
-          console.error(`Import timetables: Error at row ${rowIndex}:`, err);
-          errors.push(`Row ${rowIndex}: Failed to process - ${err.message}`);
+      // Validate lecturers (if provided)
+      let lecturers = [];
+      if (lecturerEmails) {
+        const lecturerEmailArray = lecturerEmails.split(',').map(email => email.trim());
+        lecturers = await User.find({ email: { $in: lecturerEmailArray }, role: 'lecturer' }).select('_id email role');
+        console.log(`Create timetable: Found ${lecturers.length} lecturers:`, JSON.stringify(lecturers, null, 2));
+        if (lecturers.length !== lecturerEmailArray.length) {
+          console.error('Create timetable: Some lecturers not found');
+          return res.status(404).json({ msg: 'One or more lecturers not found' });
         }
       }
 
-      console.log('Import timetables: Results:', results.length, 'Errors:', errors.length);
-      res.status(200).json({
-        message: `Imported ${results.length} timetables successfully`,
-        errors: errors.length > 0 ? errors : undefined,
+      // Combine users
+      const userIds = [...students, ...lecturers];
+      console.log(`Create timetable: Total users assigned: ${userIds.length}`);
+
+      // Validate time format
+      const startTimeDate = new Date(`1970-01-01T${startTime}:00`);
+      const endTimeDate = new Date(`1970-01-01T${endTime}:00`);
+      if (isNaN(startTimeDate) || isNaN(endTimeDate)) {
+        console.error('Create timetable: Invalid time format');
+        return res.status(400).json({ msg: 'Invalid time format' });
+      }
+      if (endTimeDate <= startTimeDate) {
+        console.error('Create timetable: End time must be after start time');
+        return res.status(400).json({ msg: 'End time must be after start time' });
+      }
+
+      // Create timetable
+      const timetable = new Timetable({
+        courseId: course._id,
+        subject,
+        roomId: room._id,
+        userIds: userIds.map(user => user._id),
+        startTime: startTimeDate,
+        endTime: endTimeDate,
+        day,
       });
+
+      await timetable.save();
+      console.log('Create timetable: Created:', JSON.stringify(timetable, null, 2));
+
+      // Populate for response
+      const populatedTimetable = await Timetable.findById(timetable._id)
+        .populate('courseId', 'code name')
+        .populate('roomId', 'name')
+        .populate('userIds', 'email role');
+
+      // Send email notifications
+      const recipients = populatedTimetable.userIds.map(user => user.email);
+      if (recipients.length > 0) {
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: recipients.join(','),
+          subject: `Timetable Created: ${course.code} - ${subject}`,
+          text: `Dear Student/Lecturer,\n\nA timetable has been created:\n- Course: ${course.code} (${course.name})\n- Subject: ${subject}\n- Room: ${room.name}\n- Day: ${day}\n- Time: ${startTime} - ${endTime}\n\nPlease check your timetable in the Smart Campus Services Portal.\n\nRegards,\nSmart Campus Team`,
+        };
+
+        try {
+          await transporter.sendMail(mailOptions);
+          console.log(`Create timetable: Notification sent to: ${recipients.join(',')}`);
+        } catch (emailErr) {
+          console.error('Create timetable: Error sending email:', emailErr);
+        }
+      }
+
+      res.status(201).json(populatedTimetable);
     } catch (err) {
-      console.error('Import timetables: Server error:', err);
+      console.error('Create timetable: Error:', err);
       res.status(500).json({ msg: 'Server error' });
     }
   };
 
+  // GET /api/timetable
+  const getTimetables = async (req, res) => {
+    try {
+      console.log('Get timetables: req.user:', JSON.stringify(req.user, null, 2));
+      const query = req.user.role === 'student' ? { userIds: req.user.id } : {};
+      const timetables = await Timetable.find(query)
+        .populate('courseId', 'code name')
+        .populate('roomId', 'name maintenance')
+        .populate('userIds', 'email role')
+        .sort({ startTime: 1 });
+      console.log('Get timetables: count:', timetables.length);
+      res.json(timetables);
+    } catch (err) {
+      console.error('Error fetching timetables:', err);
+      res.status(500).json({ msg: 'Server error' });
+    }
+  };
+
+  // GET /api/timetable/all
   const getAllTimetables = async (req, res) => {
     try {
       console.log('Get all timetables: req.user:', JSON.stringify(req.user, null, 2));
-
       if (req.user.role !== 'admin') {
         console.error('Get all timetables: Unauthorized');
         return res.status(403).json({ msg: 'Unauthorized' });
       }
-
       const timetables = await Timetable.find()
-        .populate('roomId', 'name')
-        .populate('userIds', 'name email role')
-        .sort({ day: 1, startTime: 1 });
-
+        .populate('courseId', 'code name')
+        .populate('roomId', 'name maintenance')
+        .populate('userIds', 'email role')
+        .sort({ startTime: 1 });
       console.log('Get all timetables: count:', timetables.length);
       res.json(timetables);
     } catch (err) {
@@ -217,106 +169,140 @@ const transporter = nodemailer.createTransport({
     }
   };
 
+  // GET /api/timetable/filter
+  const getFilteredTimetables = async (req, res) => {
+    try {
+      console.log('Get filtered timetables: req.user:', JSON.stringify(req.user, null, 2));
+      console.log('Get filtered timetables: req.query:', JSON.stringify(req.query, null, 2));
 
+      const { courseCode } = req.query;
+      if (!courseCode) {
+        console.error('Get filtered timetables: Course code is required');
+        return res.status(400).json({ msg: 'Course code is required' });
+      }
+
+      const course = await Course.findOne({ code: courseCode });
+      if (!course) {
+        console.error(`Get filtered timetables: Course not found: ${courseCode}`);
+        return res.status(404).json({ msg: `Course not found: ${courseCode}` });
+      }
+
+      const query = req.user.role === 'student'
+        ? { courseId: course._id, userIds: req.user.id }
+        : { courseId: course._id };
+
+      const timetables = await Timetable.find(query)
+        .populate('courseId', 'code name')
+        .populate('roomId', 'name maintenance')
+        .populate('userIds', 'email role')
+        .sort({ startTime: 1 });
+
+      console.log('Get filtered timetables: count:', timetables.length);
+      res.json(timetables);
+    } catch (err) {
+      console.error('Error fetching filtered timetables:', err);
+      res.status(500).json({ msg: 'Server error' });
+    }
+  };
+
+  // PUT /api/timetable/:id
   const updateTimetable = async (req, res) => {
     try {
-      console.log('Update timetable: req.user:', JSON.stringify(req.user, null, 2));
       console.log('Update timetable: req.body:', JSON.stringify(req.body, null, 2));
+      console.log('Update timetable: req.user:', JSON.stringify(req.user, null, 2));
+      console.log('Update timetable: req.params.id:', req.params.id);
 
       if (req.user.role !== 'admin') {
         console.error('Update timetable: Unauthorized');
         return res.status(403).json({ msg: 'Unauthorized' });
       }
 
-      const { courseName, roomName, day, startTime, endTime, lecturerEmails } = req.body;
+      const { courseCode, subject, roomName, day, startTime, endTime, lecturerEmails } = req.body;
 
-      if (!courseName || courseName.length < 3) {
-        return res.status(400).json({ msg: 'Invalid course name' });
-      }
-
-      if (!['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].includes(day)) {
-        return res.status(400).json({ msg: 'Invalid day' });
-      }
-
-      const room = await Room.findOne({ name: roomName });
-      if (!room) {
-        return res.status(400).json({ msg: `Room not found: ${roomName}` });
-      }
-
-      // Fetch all students
-      const students = await User.find({ role: 'student' });
-      if (students.length === 0) {
-        return res.status(400).json({ msg: 'No students found' });
-      }
-
-      // Handle optional lecturers
-      let users = [...students];
-      if (lecturerEmails) {
-        const emailArray = lecturerEmails.split(',').map(email => email.trim());
-        const lecturers = await User.find({ email: { $in: emailArray }, role: 'lecturer' });
-        if (lecturers.length !== emailArray.length) {
-          const foundEmails = lecturers.map(u => u.email);
-          const missingEmails = emailArray.filter(e => !foundEmails.includes(e));
-          return res.status(400).json({ msg: `Lecturers not found: ${missingEmails.join(', ')}` });
-        }
-        users = [...students, ...lecturers];
-      }
-
-      const [startHour, startMinute] = startTime.split(':').map(Number);
-      const [endHour, endMinute] = endTime.split(':').map(Number);
-      const startDate = new Date(2025, 0, 1, startHour, startMinute);
-      const endDate = new Date(2025, 0, 1, endHour, endMinute);
-
-      if (isNaN(startDate) || isNaN(endDate)) {
-        return res.status(400).json({ msg: 'Invalid time format' });
-      }
-      if (startDate >= endDate) {
-        return res.status(400).json({ msg: 'Start time must be before end time' });
-      }
-
-      const overlapping = await Timetable.findOne({
-        _id: { $ne: req.params.id },
-        roomId: room._id,
-        day,
-        $or: [
-          { startTime: { $lt: endDate, $gte: startDate } },
-          { endTime: { $gt: startDate, $lte: endDate } },
-          { startTime: { $lte: startDate }, endTime: { $gte: endDate } },
-        ],
-      });
-      if (overlapping) {
-        return res.status(400).json({ msg: 'Schedule conflicts with existing timetable' });
+      if (!courseCode || !subject || !roomName || !day || !startTime || !endTime) {
+        console.error('Update timetable: Missing required fields');
+        return res.status(400).json({ msg: 'All fields are required' });
       }
 
       const timetable = await Timetable.findById(req.params.id);
       if (!timetable) {
+        console.error('Update timetable: Timetable not found');
         return res.status(404).json({ msg: 'Timetable not found' });
       }
 
-      timetable.courseName = courseName;
+      const course = await Course.findOne({ code: courseCode });
+      if (!course) {
+        console.error(`Update timetable: Course not found: ${courseCode}`);
+        return res.status(404).json({ msg: `Course not found: ${courseCode}` });
+      }
+      if (!course.subjects.includes(subject)) {
+        console.error(`Update timetable: Subject not found in course: ${subject}`);
+        return res.status(400).json({ msg: `Subject not found in course: ${subject}` });
+      }
+
+      const room = await Room.findOne({ name: roomName });
+      if (!room) {
+        console.error(`Update timetable: Room not found: ${roomName}`);
+        return res.status(404).json({ msg: `Room not found: ${roomName}` });
+      }
+
+      console.log(`Update timetable: Finding students for course: ${courseCode}`);
+      const students = await User.find({ courseCodes: courseCode, role: 'student' }).select('_id email role');
+      console.log(`Update timetable: Found ${students.length} students:`, JSON.stringify(students, null, 2));
+
+      let lecturers = [];
+      if (lecturerEmails) {
+        const lecturerEmailArray = lecturerEmails.split(',').map(email => email.trim());
+        lecturers = await User.find({ email: { $in: lecturerEmailArray }, role: 'lecturer' }).select('_id email role');
+        console.log(`Update timetable: Found ${lecturers.length} lecturers:`, JSON.stringify(lecturers, null, 2));
+        if (lecturers.length !== lecturerEmailArray.length) {
+          console.error('Update timetable: Some lecturers not found');
+          return res.status(404).json({ msg: 'One or more lecturers not found' });
+        }
+      }
+
+      const userIds = [...students, ...lecturers];
+      console.log(`Update timetable: Total users assigned: ${userIds.length}`);
+
+      const startTimeDate = new Date(`1970-01-01T${startTime}:00`);
+      const endTimeDate = new Date(`1970-01-01T${endTime}:00`);
+      if (isNaN(startTimeDate) || isNaN(endTimeDate)) {
+        console.error('Update timetable: Invalid time format');
+        return res.status(400).json({ msg: 'Invalid time format' });
+      }
+      if (endTimeDate <= startTimeDate) {
+        console.error('Update timetable: End time must be after start time');
+        return res.status(400).json({ msg: 'End time must be after start time' });
+      }
+
+      timetable.courseId = course._id;
+      timetable.subject = subject;
       timetable.roomId = room._id;
-      timetable.userIds = users.map(u => u._id);
-      timetable.startTime = startDate;
-      timetable.endTime = endDate;
+      timetable.userIds = userIds.map(user => user._id);
+      timetable.startTime = startTimeDate;
+      timetable.endTime = endTimeDate;
       timetable.day = day;
 
       await timetable.save();
       console.log('Update timetable: Updated:', JSON.stringify(timetable, null, 2));
 
-      // Send notification
-      await sendTimetableNotification(users, { ...timetable.toObject(), roomId: { name: roomName } }, 'Updated');
+      const populatedTimetable = await Timetable.findById(timetable._id)
+        .populate('courseId', 'code name')
+        .populate('roomId', 'name')
+        .populate('userIds', 'email role');
 
-      res.json(timetable);
+      res.json(populatedTimetable);
     } catch (err) {
-      console.error('Error updating timetable:', err);
+      console.error('Update timetable: Error:', err);
       res.status(500).json({ msg: 'Server error' });
     }
   };
 
+  // DELETE /api/timetable/:id
   const deleteTimetable = async (req, res) => {
     try {
       console.log('Delete timetable: req.user:', JSON.stringify(req.user, null, 2));
-      console.log('Delete timetable: id:', req.params.id);
+      console.log('Delete timetable: req.params.id:', req.params.id);
 
       if (req.user.role !== 'admin') {
         console.error('Delete timetable: Unauthorized');
@@ -325,10 +311,11 @@ const transporter = nodemailer.createTransport({
 
       const timetable = await Timetable.findById(req.params.id);
       if (!timetable) {
+        console.error('Delete timetable: Timetable not found');
         return res.status(404).json({ msg: 'Timetable not found' });
       }
 
-      await timetable.deleteOne();
+      await timetable.remove();
       console.log('Delete timetable: Deleted:', req.params.id);
       res.json({ msg: 'Timetable deleted' });
     } catch (err) {
@@ -337,95 +324,11 @@ const transporter = nodemailer.createTransport({
     }
   };
 
-  const createTimetable = async (req, res) => {
-    try {
-      console.log('Create timetable: req.user:', JSON.stringify(req.user, null, 2));
-      console.log('Create timetable: req.body:', JSON.stringify(req.body, null, 2));
-
-      if (req.user.role !== 'admin') {
-        console.error('Create timetable: Unauthorized');
-        return res.status(403).json({ msg: 'Unauthorized' });
-      }
-
-      const { courseName, roomName, day, startTime, endTime, lecturerEmails } = req.body;
-
-      if (!courseName || courseName.length < 3) {
-        return res.status(400).json({ msg: 'Invalid course name' });
-      }
-
-      if (!['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].includes(day)) {
-        return res.status(400).json({ msg: 'Invalid day' });
-      }
-
-      const room = await Room.findOne({ name: roomName });
-      if (!room) {
-        return res.status(400).json({ msg: `Room not found: ${roomName}` });
-      }
-
-      // Fetch all students
-      const students = await User.find({ role: 'student' });
-      if (students.length === 0) {
-        return res.status(400).json({ msg: 'No students found' });
-      }
-
-      // Handle optional lecturers
-      let users = [...students];
-      if (lecturerEmails) {
-        const emailArray = lecturerEmails.split(',').map(email => email.trim());
-        const lecturers = await User.find({ email: { $in: emailArray }, role: 'lecturer' });
-        if (lecturers.length !== emailArray.length) {
-          const foundEmails = lecturers.map(u => u.email);
-          const missingEmails = emailArray.filter(e => !foundEmails.includes(e));
-          return res.status(400).json({ msg: `Lecturers not found: ${missingEmails.join(', ')}` });
-        }
-        users = [...students, ...lecturers];
-      }
-
-      const [startHour, startMinute] = startTime.split(':').map(Number);
-      const [endHour, endMinute] = endTime.split(':').map(Number);
-      const startDate = new Date(2025, 0, 1, startHour, startMinute);
-      const endDate = new Date(2025, 0, 1, endHour, endMinute);
-
-      if (isNaN(startDate) || isNaN(endDate)) {
-        return res.status(400).json({ msg: 'Invalid time format' });
-      }
-      if (startDate >= endDate) {
-        return res.status(400).json({ msg: 'Start time must be before end time' });
-      }
-
-      const overlapping = await Timetable.findOne({
-        roomId: room._id,
-        day,
-        $or: [
-          { startTime: { $lt: endDate, $gte: startDate } },
-          { endTime: { $gt: startDate, $lte: endDate } },
-          { startTime: { $lte: startDate }, endTime: { $gte: endDate } },
-        ],
-      });
-      if (overlapping) {
-        return res.status(400).json({ msg: 'Schedule conflicts with existing timetable' });
-      }
-
-      const timetable = new Timetable({
-        courseName,
-        roomId: room._id,
-        userIds: users.map(u => u._id),
-        startTime: startDate,
-        endTime: endDate,
-        day,
-      });
-
-      await timetable.save();
-      console.log('Create timetable: Created:', JSON.stringify(timetable, null, 2));
-
-      // Send notification
-      await sendTimetableNotification(users, { ...timetable.toObject(), roomId: { name: roomName } }, 'Created');
-
-      res.status(201).json(timetable);
-    } catch (err) {
-      console.error('Error creating timetable:', err);
-      res.status(500).json({ msg: 'Server error' });
-    }
+  module.exports = {
+    createTimetable,
+    getTimetables,
+    getAllTimetables,
+    getFilteredTimetables,
+    updateTimetable,
+    deleteTimetable,
   };
-
-  module.exports = { getUserTimetable, importTimetables, getAllTimetables, updateTimetable, deleteTimetable, createTimetable };

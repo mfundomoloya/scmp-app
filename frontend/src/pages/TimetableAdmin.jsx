@@ -5,12 +5,14 @@ import { useState, useEffect, useContext } from 'react';
   const TimetableAdmin = () => {
     const { user } = useContext(AuthContext);
     const [timetables, setTimetables] = useState([]);
+    const [courses, setCourses] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [editing, setEditing] = useState(null);
     const [creating, setCreating] = useState(false);
     const [formData, setFormData] = useState({
-      courseName: '',
+      courseCode: '',
+      subject: '',
       roomName: '',
       day: '',
       startTime: '',
@@ -22,33 +24,52 @@ import { useState, useEffect, useContext } from 'react';
     console.log('TimetableAdmin: User:', JSON.stringify(user, null, 2));
 
     useEffect(() => {
-      const fetchTimetables = async () => {
+      const fetchData = async () => {
         setLoading(true);
         try {
-          console.log('TimetableAdmin: Fetching timetables');
+          console.log('TimetableAdmin: Fetching timetables and courses');
           const token = localStorage.getItem('token');
-          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/timetable/all`, {
-            headers: { 'x-auth-token': token },
-          });
-          console.log('TimetableAdmin: Fetched timetables:', response.data);
-          setTimetables(response.data);
-          setError(null);
+          if (!token) {
+            throw new Error('No authentication token found');
+          }
+          const [timetableResponse, courseResponse] = await Promise.all([
+            axios.get(`${import.meta.env.VITE_API_URL}/api/timetable/all`, {
+              headers: { 'x-auth-token': token },
+            }),
+            axios.get(`${import.meta.env.VITE_API_URL}/api/courses`, {
+              headers: { 'x-auth-token': token },
+            }),
+          ]);
+          console.log('TimetableAdmin: Fetched timetables:', timetableResponse.data);
+          console.log('TimetableAdmin: Fetched courses:', courseResponse.data);
+          setTimetables(timetableResponse.data);
+          setCourses(courseResponse.data);
+          if (courseResponse.data.length === 0) {
+            setError('No courses available. Please create courses first.');
+          } else {
+            setError(null);
+          }
         } catch (err) {
-          console.error('TimetableAdmin: Error fetching timetables:', err);
-          setError(err.response?.data?.msg || 'Failed to load timetables. Please try again.');
+          console.error('TimetableAdmin: Error fetching data:', err);
+          setError(err.response?.data?.msg || err.message || 'Failed to load data. Please try again.');
         } finally {
           setLoading(false);
         }
       };
       if (user && user.role === 'admin') {
-        fetchTimetables();
+        fetchData();
       }
     }, [user]);
 
     const handleCreate = () => {
+      if (courses.length === 0) {
+        setError('Cannot create timetable: No courses available.');
+        return;
+      }
       setCreating(true);
       setFormData({
-        courseName: '',
+        courseCode: '',
+        subject: '',
         roomName: '',
         day: '',
         startTime: '',
@@ -60,7 +81,8 @@ import { useState, useEffect, useContext } from 'react';
     const handleEdit = (timetable) => {
       setEditing(timetable._id);
       setFormData({
-        courseName: timetable.courseName,
+        courseCode: timetable.courseId.code,
+        subject: timetable.subject,
         roomName: timetable.roomId.name,
         day: timetable.day,
         startTime: new Date(timetable.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -135,6 +157,15 @@ import { useState, useEffect, useContext } from 'react';
       }
     };
 
+    const handleCourseChange = (e) => {
+      const selectedCourse = courses.find(c => c.code === e.target.value);
+      setFormData({
+        ...formData,
+        courseCode: e.target.value,
+        subject: '',
+      });
+    };
+
     if (!user || user.role !== 'admin') {
       return <div className="text-white text-center mt-8">Access denied. Admins only.</div>;
     }
@@ -145,8 +176,8 @@ import { useState, useEffect, useContext } from 'react';
         <div className="flex justify-end mb-4">
           <button
             onClick={handleCreate}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-600"
+            disabled={loading || courses.length === 0}
           >
             Create Timetable
           </button>
@@ -169,6 +200,7 @@ import { useState, useEffect, useContext } from 'react';
                 <thead>
                   <tr className="bg-gray-800 text-left">
                     <th className="px-6 py-4 text-sm font-semibold text-gray-300">Course</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Subject</th>
                     <th className="px-6 py-4 text-sm font-semibold text-gray-300">Room</th>
                     <th className="px-6 py-4 text-sm font-semibold text-gray-300">Day</th>
                     <th className="px-6 py-4 text-sm font-semibold text-gray-300">Time</th>
@@ -179,7 +211,8 @@ import { useState, useEffect, useContext } from 'react';
                 <tbody className="divide-y divide-gray-800">
                   {timetables.map((timetable) => (
                     <tr key={timetable._id} className="hover:bg-gray-800">
-                      <td className="px-6 py-4">{timetable.courseName}</td>
+                      <td className="px-6 py-4">{timetable.courseId?.code}</td>
+                      <td className="px-6 py-4">{timetable.subject}</td>
                       <td className="px-6 py-4">{timetable.roomId?.name}</td>
                       <td className="px-6 py-4">{timetable.day}</td>
                       <td className="px-6 py-4">
@@ -216,14 +249,33 @@ import { useState, useEffect, useContext } from 'react';
               <h2 className="text-2xl font-bold mb-4 text-white">{editing ? 'Edit Timetable' : 'Create Timetable'}</h2>
               <form onSubmit={editing ? handleUpdate : handleCreateSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Course Name</label>
-                  <input
-                    type="text"
-                    value={formData.courseName}
-                    onChange={(e) => setFormData({ ...formData, courseName: e.target.value })}
+                  <label className="block text-sm font-medium text-gray-300">Course Code</label>
+                  <select
+                    value={formData.courseCode}
+                    onChange={handleCourseChange}
                     className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
                     required
-                  />
+                  >
+                    <option value="">Select Course</option>
+                    {courses.map(course => (
+                      <option key={course._id} value={course.code}>{course.code} - {course.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Subject</label>
+                  <select
+                    value={formData.subject}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
+                    required
+                    disabled={!formData.courseCode}
+                  >
+                    <option value="">Select Subject</option>
+                    {formData.courseCode && courses.find(c => c.code === formData.courseCode)?.subjects.map(subject => (
+                      <option key={subject} value={subject}>{subject}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300">Room Name</label>
@@ -244,7 +296,7 @@ import { useState, useEffect, useContext } from 'react';
                     required
                   >
                     <option value="">Select Day</option>
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
                       <option key={day} value={day}>{day}</option>
                     ))}
                   </select>
