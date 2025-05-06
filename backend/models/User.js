@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true },
+  firstName: { type: String, required: true,},
+  lastName: { type: String, required: true,},
     email: { type:String, required:true, unique: true},
     password: { type: String, required: true },
     role: { type: String, enum:['student', 'lecturer', 'admin'], required: true},
@@ -29,6 +30,10 @@ const userSchema = new mongoose.Schema({
     avatar: {
       type: String,
       default: 'https://placehold.co/100x100',
+    },
+    initials: {
+      type: String,
+      default: '',
     },
 }, { timestamps: true });
 

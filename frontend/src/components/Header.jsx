@@ -247,34 +247,33 @@ import { useContext, useState, useEffect, useRef } from 'react';
                     </div>
                   </li>
                   <li ref={profileRef}>
-                    <div className="relative">
-                      <button
-                        onClick={toggleProfileDropdown}
-                        className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6 mr-2"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
+                  <div className="relative">
+                    <button
+                      onClick={toggleProfileDropdown}
+                      className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
+                    >
+                      <img
+                        src={
+                          user.avatar && user.avatar.startsWith('http')
+                            ? user.avatar
+                            : user.avatar
+                              ? `${import.meta.env.VITE_API_URL}/${user.avatar}`
+                              : 'https://placehold.co/100x100'
+                        }
+                        alt="Profile avatar"
+                        className="w-6 h-6 rounded-full mr-2 object-cover"
+                      />
+                      {user.initials || 'User'}
+                    </button>
+                    {showProfileDropdown && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-lg shadow-lg py-2 z-50">
+                        <Link
+                          to="/profile"
+                          className="block px-4 py-2 hover:bg-gray-100"
+                          onClick={() => setShowProfileDropdown(false)}
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        {user.name}
-                      </button>
-                      {showProfileDropdown && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-lg shadow-lg py-2 z-50">
-                          <Link
-                            to="/profile"
-                            className="block px-4 py-2 hover:bg-gray-100"
-                            onClick={() => setShowProfileDropdown(false)}
-                          >
-                            Profile Settings
-                          </Link>
+                          Profile Settings
+                        </Link>
                           <button
                             onClick={handleLogout}
                             className="block w-full text-left px-4 py-2 hover:bg-gray-100"

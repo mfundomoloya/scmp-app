@@ -1,10 +1,19 @@
 const User = require('../models/User');
 const Course = require('../models/Course');
+const path = require('path');
+const fs = require('fs');
+
+
+const computeInitials = (firstName, lastName) => {
+  const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
+  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+  return `${firstInitial}${lastInitial}`;
+};
 
   const getProfile = async (req, res) => {
     try {
       console.log('Get profile: req.user:', JSON.stringify(req.user, null, 2));
-      const user = await User.findById(req.user.id).select('name email role courseCodes notificationPreferences displayName avatar');
+      const user = await User.findById(req.user.id).select('firstName lastName email role courseCodes notificationPreferences displayName avatar initials');
       if (!user) {
         console.error('Get profile: User not found');
         return res.status(404).json({ msg: 'User not found' });
@@ -23,7 +32,7 @@ const Course = require('../models/Course');
       console.log('Update profile: req.body:', JSON.stringify(req.body, null, 2));
       console.log('Update profile: req.file:', req.file ? req.file : 'No file uploaded');
 
-      const { courseCodes, emailNotifications, displayName } = req.body;
+      const { courseCodes, emailNotifications, displayName, firstName, lastName } = req.body;
 
       // Parse JSON if courseCodes is a string (from FormData)
       let parsedCourseCodes = courseCodes;
@@ -77,6 +86,25 @@ const Course = require('../models/Course');
         }
         user.displayName = displayName;
       }
+
+      // Update firstName and lastName
+      if (firstName) {
+        if (firstName.length > 50) {
+          console.error('Update profile: First name too long');
+          return res.status(400).json({ msg: 'First name must be 50 characters or less' });
+        }
+        user.firstName = firstName;
+      }
+      if (lastName) {
+        if (lastName.length > 50) {
+          console.error('Update profile: Last name too long');
+          return res.status(400).json({ msg: 'Last name must be 50 characters or less' });
+        }
+        user.lastName = lastName;
+      }
+
+      // Update initials
+      user.initials = computeInitials(user.firstName, user.lastName);
 
       // Handle avatar upload
       if (req.file) {
