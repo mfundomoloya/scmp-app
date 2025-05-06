@@ -13,7 +13,6 @@ const Timetable = require('../models/Timetable');
     },
   });
 
-  // POST /api/timetable
   const createTimetable = async (req, res) => {
     try {
       console.log('Create timetable: req.body:', JSON.stringify(req.body, null, 2));
@@ -130,7 +129,6 @@ const Timetable = require('../models/Timetable');
     }
   };
 
-  // GET /api/timetable
   const getTimetables = async (req, res) => {
     try {
       console.log('Get timetables: req.user:', JSON.stringify(req.user, null, 2));
@@ -148,7 +146,6 @@ const Timetable = require('../models/Timetable');
     }
   };
 
-  // GET /api/timetable/all
   const getAllTimetables = async (req, res) => {
     try {
       console.log('Get all timetables: req.user:', JSON.stringify(req.user, null, 2));
@@ -169,7 +166,6 @@ const Timetable = require('../models/Timetable');
     }
   };
 
-  // GET /api/timetable/filter
   const getFilteredTimetables = async (req, res) => {
     try {
       console.log('Get filtered timetables: req.user:', JSON.stringify(req.user, null, 2));
@@ -205,7 +201,6 @@ const Timetable = require('../models/Timetable');
     }
   };
 
-  // PUT /api/timetable/:id
   const updateTimetable = async (req, res) => {
     try {
       console.log('Update timetable: req.body:', JSON.stringify(req.body, null, 2));
@@ -297,8 +292,7 @@ const Timetable = require('../models/Timetable');
       res.status(500).json({ msg: 'Server error' });
     }
   };
-
-  // DELETE /api/timetable/:id
+ 
   const deleteTimetable = async (req, res) => {
     try {
       console.log('Delete timetable: req.user:', JSON.stringify(req.user, null, 2));

@@ -15,6 +15,8 @@ const announcementsRoutes = require('./routes/announcementsRoutes');
 const notificationRoutes = require('./routes/notification');
 const roomRoutes = require('./routes/roomsRoutes');
 const courseRoutes = require('./routes/courseRoutes');
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -25,6 +27,18 @@ const io = new Server(server, {
   },
 });
 const PORT = process.env.PORT || 5000;
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/storage/avatars');
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${req.user.id}-${Date.now()}${ext}`);
+  },
+});
+
+const upload = multer({ storage });
 
 
 // Middleware
@@ -39,8 +53,11 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+app.use(express.static(path.join(__dirname, 'public')));
+
+
 //using the routes
-app.use('/api/users', userRoutes);
+app.use('/api/users', upload.single('avatar'), userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/announcements', announcementsRoutes);
