@@ -7,12 +7,14 @@ const { Server } = require('socket.io');
 const rateLimit = require('express-rate-limit');
 const bodyParser = require('body-parser');
 const userRoutes = require('./routes/userRoutes');
-const issuesRoutes = require('./routes/issuesRoutes');
+const maintenanceRoutes = require('./routes/maintenanceRoutes');
 const authRoutes = require('./routes/authRoutes');
 const bookingsRoutes = require('./routes/bookingsRoutes');
-const schedulesRoutes = require('./routes/schedulesRoutes');
+const timetableRoutes = require('./routes/timetableRoutes');
 const announcementsRoutes = require('./routes/announcementsRoutes');
 const notificationRoutes = require('./routes/notification');
+const roomRoutes = require('./routes/roomsRoutes');
+const courseRoutes = require('./routes/courseRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -39,12 +41,14 @@ app.use(limiter);
 
 //using the routes
 app.use('/api/users', userRoutes);
-app.use('/api/issues', issuesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
-app.use('/api/schedules', schedulesRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/rooms', roomRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/timetable', timetableRoutes);
+app.use('/api/courses', courseRoutes);
 
 // Socket.IO setup
 io.on('connection', (socket) => {

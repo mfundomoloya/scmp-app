@@ -10,6 +10,12 @@ const userSchema = new mongoose.Schema({
     verificationToken: { type: String },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+    courseCodes: [{
+      type: String,
+      trim: true,
+      minlength: 4,
+      maxlength: 10,
+    }],
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

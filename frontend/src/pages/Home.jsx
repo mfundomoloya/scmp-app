@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 
 const Home = () => {
   const { user, loading } = useContext(AuthContext);
@@ -9,38 +9,51 @@ const Home = () => {
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-700">
-        Loading...
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
+
   if (user) return <Navigate to={`/${user.role}`} />;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-purple-100 to-blue-100">
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-purple mb-6">
-          Welcome to Smart Campus Services Portal
-        </h1>
-        <p className="text-xl text-gray-700 max-w-2xl mx-auto">
-          Manage your campus services: Book rooms, view schedules, report
-          issues, and stay updated.
-        </p>
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        backgroundImage:
+          'url("https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <div className="max-w-3xl w-full mx-auto px-4">
+        <div className="bg-black bg-opacity-75 backdrop-blur-sm p-8 rounded-lg shadow-2xl text-white">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold mb-4 text-blue-400">
+              Welcome to Smart Campus Services Portal
+            </h1>
+            <p className="text-xl text-gray-300">
+              Manage your campus services: Book rooms, view schedules, report
+              issues, and stay updated.
+            </p>
+          </div>
 
-        <div className="mt-12 flex flex-col md:flex-row gap-4 justify-center">
-          <a
-            href="/login"
-            className="px-6 py-3 bg-purple text-white rounded-lg shadow-md hover:bg-midnight transition duration-300"
-          >
-            Login
-          </a>
-          <a
-            href="/register"
-            className="px-6 py-3 bg-white text-purple border border-purple rounded-lg shadow-md hover:bg-silver transition duration-300"
-          >
-            Register
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+            <Link
+              to="/login"
+              className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-center transition-colors duration-200"
+            >
+              Sign In
+            </Link>
+            <Link
+              to="/register"
+              className="w-full sm:w-auto px-8 py-3 border border-blue-400 text-blue-400 hover:bg-blue-900 hover:bg-opacity-30 font-medium rounded-lg text-center transition-colors duration-200"
+            >
+              Create Account
+            </Link>
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 };
 
