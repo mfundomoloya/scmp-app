@@ -32,126 +32,117 @@ const User = require('../models/User');
     }
   });
 
+  const computeInitials = (firstName, lastName) => {
+    const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
+    const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+    return `${firstInitial}${lastInitial}`;
+  };
+
   const register = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { name, email, password, role } = req.body;
-
     try {
-      console.log('Registering user:', { name, email, role });
+      console.log('Register: req.body:', JSON.stringify(req.body, null, 2));
+      const { firstName, lastName, email, password, role } = req.body;
 
-      // Check if email exists
-      let user = await User.findOne({ email: email.toLowerCase() });
+      if (!firstName || !lastName || !email || !password) {
+        console.error('Register: Missing required fields');
+        return res.status(400).json({ msg: 'All fields are required' });
+      }
+
+      let user = await User.findOne({ email });
       if (user) {
-        return res.status(400).json({ msg: 'This email is already registered' });
+        console.error('Register: User already exists');
+        return res.status(400).json({ msg: 'User already exists' });
       }
 
-      // Generate verification token
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      console.log('Generated verification token:', verificationToken);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Create new user
       user = new User({
-        name,
-        email: email.toLowerCase(),
-        password,
-        role,
-        verificationToken,
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role: role || 'student',
+        initials: computeInitials(firstName, lastName),
       });
+
       await user.save();
-      console.log('User saved with token:', user.verificationToken);
+      console.log('Register: User created:', JSON.stringify(user, null, 2));
 
-      // Verify user in DB
-      const savedUser = await User.findOne({ email: email.toLowerCase() });
-      console.log('Verified user in DB:', {
-        email: savedUser.email,
-        verificationToken: savedUser.verificationToken,
-        tokenLength: savedUser.verificationToken?.length,
-      });
+      const payload = {
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          initials: user.initials,
+        },
+      };
 
-      // Send verification email
-      const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
-      console.log('Verification URL:', verificationUrl);
-      try {
-        await transporter.sendMail({
-          from: `"Smart Campus" <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: 'Verify Your Email',
-          html: `
-            <h2>Welcome, ${name}!</h2>
-            <p>Please verify your email by clicking the link below:</p>
-            <a href="${verificationUrl}">Verify Email</a>
-            <p>Raw link: ${verificationUrl}</p>
-            <p>If you did not register, ignore this email.</p>
-          `,
-        });
-        console.log('Verification email sent to:', email);
-        res.json({ msg: 'Registration successful. Please check your email to verify your account.' });
-      } catch (emailErr) {
-        console.error('Email sending error:', emailErr);
-        res.json({
-          msg: 'Registration successful, but failed to send verification email. Please check your email later or request a new verification link.',
-          verificationToken,
-        });
-      }
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
     } catch (err) {
-      console.error('Register error:', err);
+      console.error('Error registering user:', err);
       res.status(500).json({ msg: 'Server error' });
     }
   };
 
   const login = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      console.log('Validation errors:', errors.array());
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { email, password } = req.body;
-    console.log('Login attempt:', { email, passwordLength: password.length });
-
     try {
-      console.log('Logging in user:', { email });
+      console.log('Login: req.body:', JSON.stringify(req.body, null, 2));
+      const { email, password } = req.body;
 
-      // Check if user exists
-      const user = await User.findOne({ email: email.toLowerCase() });
+      if (!email || !password) {
+        console.error('Login: Missing required fields');
+        return res.status(400).json({ msg: 'All fields are required' });
+      }
+
+      const user = await User.findOne({ email });
       if (!user) {
+        console.error('Login: Invalid credentials');
         return res.status(400).json({ msg: 'Invalid credentials' });
       }
-      console.log('User found for login:', { email: user.email, isVerified: user.isVerified });
 
-      // Verify password
       const isMatch = await bcrypt.compare(password, user.password);
-      console.log('Password check:', { isMatch, storedHashLength: user.password.length });
       if (!isMatch) {
+        console.error('Login: Invalid credentials');
         return res.status(400).json({ msg: 'Invalid credentials' });
       }
 
-      // Check if verified
-      if (!user.isVerified) {
-        console.log('User not verified:', { email });
-        return res.status(400).json({ msg: 'Please verify your email' });
-      }
-
-      // Generate JWT
       const payload = {
-        id: user._id.toString(),
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          initials: user.initials,
+        },
       };
-      console.log('Generating JWT with payload:', payload);
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-      console.log('Login success:', { email, role: user.role, token: token.substring(0, 10) + '...' });
-      res.json({ token, user: payload });
+
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Error logging in:', err);
       res.status(500).json({ msg: 'Server error' });
     }
   };
+
 
   const getMe = async (req, res) => {
     try {
