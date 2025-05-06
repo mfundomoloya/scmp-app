@@ -9,7 +9,6 @@ if (!process.env.MONGODB_URI) {
   process.exit(1);
 }
 
-// Connect to MongoDB
 
   // Sample courses data
   const courses = [

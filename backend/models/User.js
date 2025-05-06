@@ -16,6 +16,20 @@ const userSchema = new mongoose.Schema({
       minlength: 4,
       maxlength: 10,
     }],
+    notificationPreferences: {
+      emailNotifications: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    displayName: {
+      type: String,
+      default: '',
+    },
+    avatar: {
+      type: String,
+      default: 'https://placehold.co/100x100',
+    },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
