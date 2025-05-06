@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -22,13 +23,24 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import NotificationToast from './components/NotificationToast';
 import Bookings from './pages/Bookings';
+import RoomForm from './components/RoomForm';
+import RoomList from './components/RoomList';
+import RoomImport from './components/RoomImport';
+import BookingForm from './components/BookingForm';
+import BookingList from './components/BookingList';
+import MaintenanceAdmin from './components/MaintenanceAdmin';
+import MaintenanceReportPage from './pages/MaintenanceReportPage';
+import TimetableViewer from './pages/TimetableViewer';
+import TimetableImport from './pages/TimetableImport';
+import TimetableAdmin from './pages/TimetableAdmin';
+import ProfileSettings from './pages/ProfileSettings';
 
 function App() {
   return (
     <NotificationProvider>
       <div className="flex flex-col min-h-screen bg-gray-100">
-        <NotificationToast />
         <Header />
+        <ToastContainer />
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -40,6 +52,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/profile" element={<ProfileSettings />} />
             <Route
               path="/student"
               element={
@@ -48,6 +61,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/rooms" element={<RoomList />} />
             <Route
               path="/lecturer"
               element={
@@ -56,6 +70,22 @@ function App() {
                 </ProtectedRoute>
               }
             />
+             <Route
+          path="/admin/rooms"
+          element={
+            <ProtectedRoute role="admin">
+              <RoomForm />
+            </ProtectedRoute>
+          }
+        />
+             <Route
+          path="/admin/rooms/import"
+          element={
+            <ProtectedRoute role="admin">
+              <RoomImport />
+            </ProtectedRoute>
+          }
+        />
             <Route
               path="/admin"
               element={
@@ -68,10 +98,11 @@ function App() {
               path="/bookings"
               element={
                 <ProtectedRoute role={['student', 'lecturer']}>
-                  <Bookings />
+                  <BookingForm />
                 </ProtectedRoute>
               }
             />
+            <Route path="/bookings/list" element={<BookingList />} />
             <Route
               path="/admin/bookings"
               element={
@@ -80,6 +111,46 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+          path="/maintenance/report"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+              <MaintenanceReportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/maintenance"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <MaintenanceAdmin />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/timetable"
+          element={
+            <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+              <TimetableViewer />
+            </ProtectedRoute>
+          }
+        />
+                <Route
+          path="/admin/timetables/import"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <TimetableImport />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/admin/timetables"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <TimetableAdmin />
+            </ProtectedRoute>
+          }
+        />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>

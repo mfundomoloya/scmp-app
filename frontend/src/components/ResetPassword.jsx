@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
 const ResetPassword = () => {
@@ -7,6 +7,7 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { token } = useParams();
   const navigate = useNavigate();
 
@@ -20,54 +21,119 @@ const ResetPassword = () => {
       return;
     }
 
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
       console.log('Resetting password with token:', { token });
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/reset-password/${token}`, { password });
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/reset-password/${token}`,
+        { password }
+      );
+
       console.log('Reset password response:', response.data);
-      setMessage(response.data.msg);
+      setMessage(response.data.msg || 'Password has been reset successfully.');
+
+      // Clear form
+      setPassword('');
+      setConfirmPassword('');
+
+      // Redirect to login page after delay
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
       console.error('Reset password error:', {
         message: err.message,
         response: err.response?.data,
       });
-      setError(err.response?.data?.msg || 'Failed to reset password. Please try again.');
+      setError(
+        err.response?.data?.msg || 'Failed to reset password. Please try again.'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div>
-      <div>
-        <h2>Reset Password</h2>
-        <form onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="password">New Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="px-6 py-8">
+          <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">
+            Create New Password
+          </h2>
+
+          {message && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+              {message}
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label
+                htmlFor="password"
+                className="block text-gray-700 font-medium mb-2"
+              >
+                New Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Password must be at least 6 characters
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-gray-700 font-medium mb-2"
+              >
+                Confirm New Password
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {isLoading ? 'Resetting...' : 'Reset Password'}
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-600">
+              <Link to="/login" className="text-blue-600 hover:underline">
+                Back to login
+              </Link>
+            </p>
           </div>
-          <div>
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </div>
-          {message && <p className="text-green-600 mb-4">{message}</p>}
-          {error && <p className="text-red-600 mb-4">{error}</p>}
-          <button
-            type="submit"
-          >
-            Reset Password
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -3,10 +3,10 @@ import { NotificationContext } from '../context/NotificationContext';
 import { AuthContext } from '../context/AuthContext';
 
 const NotificationToast = () => {
-    const { notifications, markAsRead } = useContext(NotificationContext);
-    const { user } = useContext(AuthContext);
+  const { notifications, markAsRead } = useContext(NotificationContext);
+  const { user } = useContext(AuthContext);
 
-    if (!user || notifications.length === 0) return null;
+  if (!user || notifications.length === 0) return null;
 
   return (
     <div className="fixed top-4 right-4 space-y-2 z-50">

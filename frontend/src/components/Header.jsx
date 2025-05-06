@@ -1,70 +1,205 @@
 import React from 'react';
 import { useContext, useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import { NotificationContext } from '../context/NotificationContext';
+  import { Link, useNavigate, useLocation } from 'react-router-dom';
+  import { AuthContext } from '../context/AuthContext';
+  import { NotificationContext } from '../context/NotificationContext';
 
-const Header = () => {
-  const { user, logout } = useContext(AuthContext);
-  const { notifications, markAsRead } = useContext(NotificationContext);
-  const navigate = useNavigate();
-  const [showNotifications, setShowNotifications] = useState(false);
-  const dropdownRef = useRef(null);
+  const Header = () => {
+    const { user, logout } = useContext(AuthContext);
+    const { notifications, markAsRead } = useContext(NotificationContext);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const notificationRef = useRef(null);
+    const profileRef = useRef(null);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+    console.log(
+      'Header: User:',
+      user ? { id: user.id, role: user.role, name: user.name } : null
+    );
+    console.log('Header: Notifications:', notifications);
+    console.log('Header: Show Notifications:', showNotifications);
+    console.log('Header: Show Profile Dropdown:', showProfileDropdown);
 
-  const toggleNotifications = () => {
-    setShowNotifications((prev) => !prev);
-  };
-
-  const handleBookingsClick = () => {
-    navigate(user.role === 'admin' ? '/admin/bookings' : '/bookings');
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowNotifications(false);
-      }
+    const handleLogout = () => {
+      console.log('Header: Logging out');
+      logout();
+      navigate('/login');
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
-  return (
-    <header className="bg-purple text-white p-4 shadow-md">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-white no-underline">
-          <h1 className="text-2xl font-bold">Smart Campus Portal</h1>
-        </Link>
-        <nav>
-          <ul className="flex items-center space-x-4">
-            {user ? (
-              <>
-                <li className="text-white">
-                  Welcome,{' '}
-                  <span className="font-medium">{user.name || 'User'}</span>
-                </li>
-                {user.role !== 'admin' && (
-                  <>
-                    <li>
-                      <Link
-                        to="/bookings"
-                        onClick={handleBookingsClick}
-                        className="text-white hover:text-silver transition duration-200"
-                      >
-                        Bookings
-                      </Link>
-                    </li>
-                    <li ref={dropdownRef} className="relative">
+    const toggleNotifications = () => {
+      setShowNotifications((prev) => !prev);
+      setShowProfileDropdown(false); // Close profile dropdown if open
+    };
+
+    const toggleProfileDropdown = () => {
+      setShowProfileDropdown((prev) => !prev);
+      setShowNotifications(false); // Close notification dropdown if open
+    };
+
+    const handleBookingsClick = () => {
+      console.log(
+        'Bookings link clicked, navigating to',
+        user.role === 'admin' ? '/admin/bookings' : '/bookings'
+      );
+      navigate(user.role === 'admin' ? '/admin/bookings' : '/bookings');
+    };
+
+    const handleMaintenanceClick = () => {
+      console.log('Maintenance link clicked, navigating to /maintenance/report');
+      navigate('/maintenance/report');
+    };
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (
+          notificationRef.current &&
+          !notificationRef.current.contains(event.target)
+        ) {
+          setShowNotifications(false);
+        }
+        if (
+          profileRef.current &&
+          !profileRef.current.contains(event.target)
+        ) {
+          setShowProfileDropdown(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+
+    const isActive = (path) => {
+      return location.pathname === path;
+    };
+
+    return (
+      <header className="bg-black text-white py-5 shadow-md">
+        <div className="container mx-auto flex justify-between items-center px-8">
+          <Link to="/" className="no-underline flex items-center">
+            <div className="bg-[#3b82f6] p-2.5 mr-3 rounded">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold">Smart Campus</h1>
+          </Link>
+          <nav className="flex-1 flex justify-end">
+            <ul className="list-none flex items-center space-x-8">
+              {user ? (
+                <>
+                  <li>
+                    <Link
+                      to="/about"
+                      className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/about') ? 'text-[#3b82f6]' : ''}`}
+                    >
+                      About
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/contact"
+                      className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/contact') ? 'text-[#3b82f6]' : ''}`}
+                    >
+                      Contact
+                    </Link>
+                  </li>
+                  {(user.role === 'student' || user.role === 'lecturer') && (
+                    <>
+                      <li>
+                        <Link
+                          to="/timetable"
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/timetable') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Timetable
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/bookings"
+                          onClick={handleBookingsClick}
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/bookings') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Bookings
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/maintenance/report"
+                          onClick={handleMaintenanceClick}
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/maintenance/report') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Maintenance
+                        </Link>
+                      </li>
+                    </>
+                  )}
+                  {user.role === 'admin' && (
+                    <>
+                      <li>
+                        <Link
+                          to="/admin/bookings"
+                          onClick={handleBookingsClick}
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/bookings') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Bookings
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/admin/rooms"
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/rooms') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Manage Rooms
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/admin/rooms/import"
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/rooms/import') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Import Rooms
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/admin/maintenance"
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/maintenance') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Maintenance
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/admin/timetables/import"
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/timetables/import') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Import Timetables
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/admin/timetables"
+                          className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/timetables') ? 'text-[#3b82f6]' : ''}`}
+                        >
+                          Manage Timetables
+                        </Link>
+                      </li>
+                    </>
+                  )}
+                  <li ref={notificationRef}>
+                    <div className="relative">
                       <button
                         onClick={toggleNotifications}
-                        className="bg-midnight hover:bg-blue-800 px-3 py-1 rounded text-white flex items-center transition duration-200"
+                        className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
                       >
                         Notifications
                         {notifications &&
@@ -99,7 +234,7 @@ const Header = () => {
                                 {!n.read && (
                                   <button
                                     onClick={() => markAsRead(n._id)}
-                                    className="mt-1 text-purple hover:text-midnight text-xs"
+                                    className="mt-1 text-[#3b82f6] hover:text-blue-600 text-xs"
                                   >
                                     Mark as Read
                                   </button>
@@ -109,43 +244,97 @@ const Header = () => {
                           )}
                         </div>
                       )}
-                    </li>
-                  </>
-                )}
-                <li>
-                  <button
-                    onClick={handleLogout}
-                    className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white transition duration-200"
-                  >
-                    Logout
-                  </button>
-                </li>
-              </>
-            ) : (
-              <>
-                <li>
-                  <Link
-                    to="/login"
-                    className="text-white hover:text-silver transition duration-200"
-                  >
-                    Login
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/register"
-                    className="text-white hover:text-silver transition duration-200"
-                  >
-                    Register
-                  </Link>
-                </li>
-              </>
-            )}
-          </ul>
-        </nav>
-      </div>
-    </header>
-  );
-};
+                    </div>
+                  </li>
+                  <li ref={profileRef}>
+                    <div className="relative">
+                      <button
+                        onClick={toggleProfileDropdown}
+                        className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6 mr-2"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        {user.name}
+                      </button>
+                      {showProfileDropdown && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-lg shadow-lg py-2 z-50">
+                          <Link
+                            to="/profile"
+                            className="block px-4 py-2 hover:bg-gray-100"
+                            onClick={() => setShowProfileDropdown(false)}
+                          >
+                            Profile Settings
+                          </Link>
+                          <button
+                            onClick={handleLogout}
+                            className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                          >
+                            Logout
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link
+                      to="/about"
+                      className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/about') ? 'text-[#3b82f6]' : ''}`}
+                    >
+                      About
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/contact"
+                      className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/contact') ? 'text-[#3b82f6]' : ''}`}
+                    >
+                      Contact
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/login"
+                      className={`text-white px-4 py-1.5 transition duration-150 ${
+                        isActive('/login')
+                          ? 'bg-white text-black'
+                          : 'border border-white hover:bg-white hover:text-[#121824]'
+                      } rounded`}
+                    >
+                      Login
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/register"
+                      className={`px-4 py-1.5 rounded transition duration-150 ${
+                        isActive('/register')
+                          ? 'bg-[#3b82f6] text-white'
+                          : 'bg-[#3b82f6] text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Register
+                    </Link>
+                  </li>
+                </>
+              )}
+            </ul>
+          </nav>
+        </div>
+      </header>
+    );
+  };
 
-export default Header;
+  export default Header;

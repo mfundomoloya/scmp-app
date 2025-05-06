@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const User = require('../models/User'); 
+const { getProfile, updateProfile } = require('../controllers/userController');
 
 
 router.post('/register', async (req, res) => {
@@ -28,5 +30,9 @@ router.post('/login', async (req, res) => {
         res.status(401).send('Invalid credentials');
     }
 });
+
+router.get('/profile', auth, getProfile);
+router.put('/profile', auth, updateProfile);
+
 
 module.exports = router;
