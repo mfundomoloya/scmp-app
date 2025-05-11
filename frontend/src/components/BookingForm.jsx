@@ -38,7 +38,7 @@ const BookingForm = ({ onBookingCreated }) => {
       try {
         const token = localStorage.getItem('token');
         console.log('BookingForm: Fetching rooms with token:', token ? '[REDACTED]' : null);
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/room`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/rooms`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setRooms(response.data);
