@@ -8,12 +8,6 @@ async function testPassword() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('MongoDB connected successfully');
 
-    const usersToTest = [
-      { email: 'admin1@scmp.com', password: '@dmin25' },
-      { email: 'mfundomoloya19@gmail.com', password: 'p@ss123' },
-      { email: 'mfundomoloya19@gmail.com', password: 'pass123' },
-    ];
-
     for (const { email, password } of usersToTest) {
       const user = await User.findOne({ email });
       if (!user) {
