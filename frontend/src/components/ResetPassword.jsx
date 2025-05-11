@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
 const ResetPassword = () => {
@@ -8,20 +8,42 @@ const ResetPassword = () => {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { token } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+
+  // Extract token from URL query string
+  const token = new URLSearchParams(location.search).get('token');
+
+  useEffect(() => {
+    if (!token) {
+      setError('Invalid or missing token.');
+    }
+  }, [token]);
+
+  // Clean input to only allow printable ASCII characters (a-z, A-Z, 0-9, common symbols)
+  const cleanInput = (input) => {
+    return input
+      .replace(/[^ -~]/g, '') // Keep only printable ASCII (0x20 to 0x7E)
+      .replace(/\s/g, '') // Remove all whitespace (spaces, newlines, tabs)
+      .trim(); // Ensure no leading/trailing spaces
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage(null);
     setError(null);
 
-    if (password !== confirmPassword) {
+    // Clean password inputs
+    const cleanedPassword = cleanInput(password);
+    const cleanedConfirmPassword = cleanInput(confirmPassword);
+
+    // Validate for length mismatch
+    if (cleanedPassword !== cleanedConfirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
+    if (cleanedPassword.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
@@ -29,13 +51,12 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      console.log('Resetting password with token:', { token });
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/auth/reset-password/${token}`,
-        { password }
+        `${import.meta.env.VITE_API_URL}/api/auth/reset-password`,
+        {  token: token,
+          newPassword: cleanedPassword }
       );
 
-      console.log('Reset password response:', response.data);
       setMessage(response.data.msg || 'Password has been reset successfully.');
 
       // Clear form
@@ -45,13 +66,7 @@ const ResetPassword = () => {
       // Redirect to login page after delay
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      console.error('Reset password error:', {
-        message: err.message,
-        response: err.response?.data,
-      });
-      setError(
-        err.response?.data?.msg || 'Failed to reset password. Please try again.'
-      );
+      setError(err.response?.data?.msg || 'Failed to reset password. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -91,11 +106,9 @@ const ResetPassword = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter new password (e.g., newPass123)"
                 required
               />
-              <p className="mt-1 text-sm text-gray-500">
-                Password must be at least 6 characters
-              </p>
             </div>
 
             <div className="mb-6">
@@ -111,6 +124,7 @@ const ResetPassword = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Confirm new password (e.g., newPass123)"
                 required
               />
             </div>

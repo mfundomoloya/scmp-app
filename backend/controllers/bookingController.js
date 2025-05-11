@@ -15,16 +15,16 @@ const transporter = nodemailer.createTransport({
 // Helper function to format dates as dd-mm-yyyy
 const formatDate = (date) => {
   const d = new Date(date);
-  if (isNaN(d)) return 'Invalid Date';  // Check if the date is invalid
-  return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;};
+  if (isNaN(d)) return 'Invalid Date';
+  return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
+};
 
 // Helper function to format time as HH:mm
 const formatTime = (dateString) => {
   const t = new Date(dateString);
-  if (isNaN(t)) return 'Invalid Time';  // Check if time is invalid
-  return t.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour24: false, timeZone: 'Africa/Johannesburg' });
+  if (isNaN(t)) return 'Invalid Time';
+  return t.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Johannesburg' });
 };
-
 
 const createBooking = async (req, res) => {
   const { room, date, startTime, endTime } = req.body;
@@ -38,19 +38,19 @@ const createBooking = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid date format' });
     }
 
-        // Check room maintenance
-        const roomData = await Room.findOne({ name: room });
-        if (!roomData) {
-          return res.status(404).json({ msg: 'Room not found' });
-        }
-        const isUnderMaintenance = roomData.maintenance.some((m) => {
-          const start = new Date(m.startDate);
-          const end = new Date(m.endDate);
-          return parsedDate >= start && parsedDate <= end;
-        });
-        if (isUnderMaintenance) {
-          return res.status(400).json({ msg: 'Room is under maintenance on this date' });
-        }
+    // Check room maintenance
+    const roomData = await Room.findOne({ name: room });
+    if (!roomData) {
+      return res.status(404).json({ msg: 'Room not found' });
+    }
+    const isUnderMaintenance = roomData.maintenance.some((m) => {
+      const start = new Date(m.startDate);
+      const end = new Date(m.endDate);
+      return parsedDate >= start && parsedDate <= end;
+    });
+    if (isUnderMaintenance) {
+      return res.status(400).json({ msg: 'Room is under maintenance on this date' });
+    }
 
     // Check for overlapping bookings
     const overlappingBookings = await Booking.find({
@@ -92,41 +92,21 @@ const createBooking = async (req, res) => {
 const getBookings = async (req, res) => {
   try {
     console.log('Get bookings: req.user:', JSON.stringify(req.user, null, 2));
-    if (!req.user || !req.user.id || !req.user.email) {
-      console.error('Get bookings: Missing req.user, req.user.id, or req.user.email');
-      return res.status(401).json({ msg: 'Invalid user authentication' });
+    if (!req.user || !req.user.id) {
+      console.error('Get bookings: Missing req.user or req.user.id');
+      return res.status(401).json({ message: 'Not authorized' });
     }
-    let query;
-    if (req.user.role === 'admin') {
-      query = {};
-    } else {
-      console.log('Get bookings: Querying by email for student:', req.user.email);
-      const user = await User.findOne({ email: req.user.email });
-      if (!user) {
-        console.error('Get bookings: User not found for email:', req.user.email);
-        // Fallback: Raw MongoDB query
-        console.log('Get bookings: Attempting raw MongoDB query by userId:', req.user.id);
-        const bookings = await Booking.find({ userId: new mongoose.Types.ObjectId(req.user.id) })
-          .populate('userId', 'name email')
-          .sort({ date: -1 });
-        console.log('Get bookings: raw MongoDB query result:', JSON.stringify(bookings, null, 2));
-        if (bookings.length > 0) {
-          console.log('Get bookings: Found bookings via raw query');
-          res.json(bookings);
-          return;
-        }
-        return res.status(400).json({ msg: 'User not found and no bookings found' });
-      }
-      console.log('Get bookings: Found user:', user._id.toString());
-      query = { userId: user._id };
+
+    let query = {};
+    if (req.user.role !== 'admin') {
+      query.userId = req.user.id;
     }
-    console.log('Get bookings: query:', JSON.stringify(query));
+
     const bookings = await Booking.find(query)
       .populate('userId', 'name email')
       .sort({ date: -1 });
-    console.log('Get bookings: raw query result:', JSON.stringify(bookings, null, 2));
-    console.log('Get bookings: rooms:', bookings.map(b => b.room));
     console.log('Get bookings: count:', bookings.length);
+    console.log('Get bookings: rooms:', bookings.map(b => b.room));
     console.log('Get bookings: userIds:', bookings.map(b => b.userId?._id?.toString()));
     res.json(bookings);
   } catch (err) {
@@ -164,7 +144,7 @@ const cancelBooking = async (req, res) => {
     // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
-      message: `Your booking for ${booking.room} on ${formattedDate} has been cancelled.`,
+      message: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been cancelled.`,
       read: false,
     });
     await notification.save();
@@ -216,8 +196,7 @@ const updateStatus = async (req, res) => {
     // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
-      message: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to 
-                ${formattedEndTime} has been updated to ${status}.`,
+      message: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been updated to ${status}.`,
       read: false,
     });
     await notification.save();
@@ -265,8 +244,7 @@ const approveBooking = async (req, res) => {
     // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
-      message: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to 
-                ${formattedEndTime} has been approved.`,
+      message: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been approved.`,
       read: false,
     });
     await notification.save();
@@ -308,7 +286,7 @@ const getAvailableSlots = async (req, res) => {
       const bookings = await Booking.find({
         room: room._id,
         startTime: { $lte: endOfDay },
-        endTime: { $gte: startOfDay }
+        endTime: { $gte: startOfDay },
       });
 
       const availableSlots = [];
@@ -326,7 +304,7 @@ const getAvailableSlots = async (req, res) => {
         if (!isBooked && !isMaintenance) {
           availableSlots.push({
             startTime: new Date(currentTime),
-            endTime: slotEnd
+            endTime: slotEnd,
           });
         }
         currentTime = slotEnd;
@@ -335,7 +313,7 @@ const getAvailableSlots = async (req, res) => {
       slots.push({
         roomId: room._id,
         roomName: room.name,
-        availableSlots
+        availableSlots,
       });
     }
 
@@ -346,6 +324,5 @@ const getAvailableSlots = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
-
 
 module.exports = { createBooking, getBookings, cancelBooking, updateStatus, approveBooking, getAvailableSlots };

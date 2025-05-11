@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const VerifyEmail = () => {
-  const { token } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [message, setMessage] = useState('Verifying your email...');
   const [error, setError] = useState(null);
   const hasVerifiedRef = useRef(false);
+
+  const queryParams = new URLSearchParams(location.search);
+  const token = queryParams.get('token');
 
   useEffect(() => {
     if (!token) {
@@ -21,26 +24,16 @@ const VerifyEmail = () => {
     const verifyEmail = async () => {
       hasVerifiedRef.current = true;
       try {
-        console.log('Verifying token:', { token, length: token?.length, url: window.location.href });
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/verify-email/${token}`);
-        console.log('Verification response:', response.data);
-        setMessage(response.data.msg);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/verify-email?token=${token}`);
+        setMessage(response.data.message); // Backend returns { message: "..." }
         setTimeout(() => navigate('/login'), 3000);
       } catch (err) {
-        console.error('Verification error:', {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-          url: err.config?.url,
-        });
-        setError(err.response?.data?.msg || 'Verification failed. Please try again or request a new link.');
+        setError(err.response?.data?.message || 'Verification failed. Please try again or request a new link.');
         setMessage('');
       }
     };
 
     verifyEmail();
-
-    // No cleanup needed since hasVerifiedRef prevents re-runs
   }, [token, navigate]);
 
   return (

@@ -7,9 +7,8 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useContext(AuthContext);
+  const { login, loading } = useContext(AuthContext);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -18,28 +17,24 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-
+    console.log('Submitting login:', {
+      email,
+      passwordLength: password.length,
+    });
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      console.log('Submitting login:', {
-        email: normalizedEmail,
-        passwordLength: password.length,
-      });
       await login(normalizedEmail, password);
       console.log('Login successful:', { email: normalizedEmail });
     } catch (err) {
       console.error('Login error:', {
         message: err.message,
-        response: err.response?.data,
         status: err.response?.status,
+        data: err.response?.data,
       });
       setError(
         err.response?.data?.msg ||
           'Login failed. Please check your credentials.'
       );
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -54,11 +49,8 @@ const Login = () => {
       }}
     >
       <div className="w-full max-w-md">
-        {/* Background image with overlay */}
         <div className="relative rounded-xl overflow-hidden shadow-xl">
           <div className="absolute inset-0 bg-black bg-opacity-60"></div>
-
-          {/* Form content */}
           <div className="relative p-8">
             <h2 className="text-3xl font-bold text-white mb-6 text-center">
               Login
@@ -81,7 +73,6 @@ const Login = () => {
                   required
                 />
               </div>
-
               <div>
                 <label
                   htmlFor="password"
@@ -112,13 +103,11 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-
               {error && (
                 <div className="bg-red-500 bg-opacity-25 text-white p-3 rounded-lg flex items-center">
                   <FaExclamationCircle className="mr-2" /> {error}
                 </div>
               )}
-
               <div className="flex items-center justify-between">
                 <Link
                   to="/forgot-password"
@@ -133,7 +122,6 @@ const Login = () => {
                   Don't have an account? Register
                 </Link>
               </div>
-
               <button
                 type="submit"
                 disabled={loading}
