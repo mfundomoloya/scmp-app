@@ -6,14 +6,15 @@ const { Readable } = require('stream');
 
 
 const getRooms = async (req, res) => {
-    try {
-      const rooms = await Room.find();
-      console.log('Get rooms: Fetched:', rooms.length);
-      res.json(rooms);
-    } catch (err) {
-      console.error('Get rooms error:', err);
-      res.status(500).json({ msg: 'Server error' });
-    }
+      try {
+    console.log('getRooms: Fetching rooms for user:', req.user.id);
+    const rooms = await Room.find().select('name capacity maintenance');
+    console.log('getRooms: Found rooms:', rooms.length);
+    res.json(rooms);
+  } catch (err) {
+    console.error('getRooms: Error fetching rooms:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
   };
 
   const createRoom = async (req, res) => {

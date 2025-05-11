@@ -1,8 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
-import { useContext } from 'react';
-import { AuthContext } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -22,7 +20,6 @@ import Privacy from './pages/Privacy';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import NotificationToast from './components/NotificationToast';
-import Bookings from './pages/Bookings';
 import RoomForm from './components/RoomForm';
 import RoomList from './components/RoomList';
 import RoomImport from './components/RoomImport';
@@ -30,6 +27,7 @@ import BookingForm from './components/BookingForm';
 import BookingList from './components/BookingList';
 import MaintenanceAdmin from './components/MaintenanceAdmin';
 import MaintenanceReportPage from './pages/MaintenanceReportPage';
+import MaintenanceReportList from './components/MaintenanceList';
 import TimetableViewer from './pages/TimetableViewer';
 import TimetableImport from './pages/TimetableImport';
 import TimetableAdmin from './pages/TimetableAdmin';
@@ -47,8 +45,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route path="/verify-email/:token" element={<VerifyEmail />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
@@ -56,7 +54,7 @@ function App() {
             <Route
               path="/student"
               element={
-                <ProtectedRoute role="student">
+                <ProtectedRoute allowedRoles={['student']}>
                   <StudentDashboard />
                 </ProtectedRoute>
               }
@@ -65,31 +63,31 @@ function App() {
             <Route
               path="/lecturer"
               element={
-                <ProtectedRoute role="lecturer">
+                <ProtectedRoute allowedRoles={['lecturer']}>
                   <LecturerDashboard />
                 </ProtectedRoute>
               }
             />
-             <Route
-          path="/admin/rooms"
-          element={
-            <ProtectedRoute role="admin">
-              <RoomForm />
-            </ProtectedRoute>
-          }
-        />
-             <Route
-          path="/admin/rooms/import"
-          element={
-            <ProtectedRoute role="admin">
-              <RoomImport />
-            </ProtectedRoute>
-          }
-        />
+            <Route
+              path="/admin/rooms"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <RoomForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/rooms/import"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <RoomImport />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin"
               element={
-                <ProtectedRoute role="admin">
+                <ProtectedRoute allowedRoles={['admin']}>
                   <AdminPanel />
                 </ProtectedRoute>
               }
@@ -97,60 +95,83 @@ function App() {
             <Route
               path="/bookings"
               element={
-                <ProtectedRoute role={['student', 'lecturer']}>
+                <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+                  <BookingList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings/new"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'lecturer']}>
                   <BookingForm />
                 </ProtectedRoute>
               }
             />
-            <Route path="/bookings/list" element={<BookingList />} />
+            <Route
+              path="/bookings/list"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+                  <BookingList />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin/bookings"
               element={
-                <ProtectedRoute role="admin">
+                <ProtectedRoute allowedRoles={['admin']}>
                   <AdminBookings />
                 </ProtectedRoute>
               }
             />
             <Route
-          path="/maintenance/report"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'lecturer']}>
-              <MaintenanceReportPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/maintenance"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <MaintenanceAdmin />
-            </ProtectedRoute>
-          }
-        />
-         <Route
-          path="/timetable"
-          element={
-            <ProtectedRoute allowedRoles={['student', 'lecturer']}>
-              <TimetableViewer />
-            </ProtectedRoute>
-          }
-        />
-                <Route
-          path="/admin/timetables/import"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <TimetableImport />
-            </ProtectedRoute>
-          }
-        />
-         <Route
-          path="/admin/timetables"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <TimetableAdmin />
-            </ProtectedRoute>
-          }
-        />
+              path="/maintenance/report"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+                  <MaintenanceReportList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/maintenance/new"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+                  <MaintenanceReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/maintenance"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <MaintenanceAdmin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/timetable"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+                  <TimetableViewer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/timetables/import"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <TimetableImport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/timetables"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <TimetableAdmin />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>

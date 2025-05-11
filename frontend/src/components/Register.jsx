@@ -61,8 +61,8 @@ import { useState } from 'react';
         );
         console.log('Registration response:', response.data);
 
-        setMessage('Registration successful! Redirecting to login...');
-        setTimeout(() => navigate('/login'), 3000);
+        setMessage(response.data.msg);
+        setTimeout(() => navigate('/login'), 5000);
       } catch (err) {
         console.error('Registration error:', {
           message: err.message,

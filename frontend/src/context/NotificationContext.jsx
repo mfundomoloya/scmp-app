@@ -1,79 +1,87 @@
-import React from 'react';
 import { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from './AuthContext';
-import { io } from 'socket.io-client';
+import io from 'socket.io-client';
 
 export const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
-  const { user } = useContext(AuthContext);
+  const { user, loading } = useContext(AuthContext);
+  const [socket, setSocket] = useState(null);
 
-  // Fetch initial notifications
   const fetchNotifications = async () => {
-    if (!user) {
-      setNotifications([]);
+    if (!user || loading) {
+      console.log('Fetch notifications: Skipping, no user or still loading', { user: !!user, loading });
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('Fetch notifications: No token found in localStorage');
       return;
     }
     try {
-      console.log('Fetching notifications for user:', user.id);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`, {
-        headers: { 'x-auth-token': localStorage.getItem('token') },
+      console.log('Fetching notifications for user:', user.email);
+      console.log('Request details:', {
+        url: `${import.meta.env.VITE_API_URL}/api/notifications`,
+        headers: { Authorization: `Bearer ${token.substring(0, 10)}...` },
       });
-      console.log('Fetched notifications:', response.data);
-      setNotifications(response.data);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('Notifications fetched:', res.data);
+      setNotifications(res.data);
     } catch (err) {
-      console.error('Fetch notifications error:', err);
+      console.error('Fetch notifications error:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
     }
   };
 
-  // WebSocket setup
   useEffect(() => {
-    if (!user) {
-      setNotifications([]);
-      return;
+    if (user && !loading) {
+      fetchNotifications();
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('Socket setup: No token found');
+        return;
+      }
+      const socketInstance = io(import.meta.env.VITE_API_URL, {
+        auth: { token },
+        transports: ['websocket'],
+      });
+      setSocket(socketInstance);
+
+      socketInstance.on('connect', () => {
+        console.log('Socket connected:', socketInstance.id);
+        socketInstance.emit('join', user.id);
+      });
+
+      socketInstance.on('newNotification', (notification) => {
+        console.log('New notification received:', notification);
+        setNotifications((prev) => [...prev, notification]);
+      });
+
+      socketInstance.on('disconnect', (reason) => {
+        console.log('Socket disconnected:', reason);
+      });
+
+      socketInstance.on('connect_error', (err) => {
+        console.log('Socket connect error:', err.message);
+      });
+
+      return () => {
+        socketInstance.disconnect();
+        console.log('Socket cleanup');
+      };
     }
-
-    // Initial fetch
-    fetchNotifications();
-
-    // WebSocket connection
-    const socket = io(import.meta.env.VITE_API_URL, {
-      transports: ['websocket'], // Prefer WebSocket over polling
-      reconnectionAttempts: 5, // Limit reconnection attempts
-      reconnectionDelay: 1000, // Delay between reconnections
-    });
-    socket.emit('join', user.id);
-    socket.on('notification', (notification) => {
-      console.log('Received notification:', notification);
-      setNotifications((prev) => [notification, ...prev]);
-    });
-    socket.on('connect_error', (err) => {
-      console.error('Socket connection error:', err);
-    });
-
-    return () => {
-      console.log('Disconnecting Socket.IO');
-      socket.disconnect();
-    };
-  }, [user]);
-
-  const markAsRead = async (id) => {
-    try {
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/notifications/${id}/read`,
-        {},
-        { headers: { 'x-auth-token': localStorage.getItem('token') } }
-      );
-      setNotifications(notifications.map((n) => (n._id === id ? { ...n, read: true } : n)));
-    } catch (err) {
-      console.error('Mark notification read error:', err);
-    }
-  };
+  }, [user, loading]);
 
   return (
-    <NotificationContext.Provider value={{ notifications, markAsRead }}>
+    <NotificationContext.Provider value={{ notifications, fetchNotifications }}>
       {children}
     </NotificationContext.Provider>
   );

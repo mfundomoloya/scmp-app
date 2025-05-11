@@ -1,116 +1,110 @@
-import { useState, useEffect, useContext } from 'react';
-  import { AuthContext } from '../context/AuthContext';
-  import axios from 'axios';
+import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 
-  const TimetableViewer = () => {
-    const { user } = useContext(AuthContext);
-    const [timetables, setTimetables] = useState([]);
-    const [courses, setCourses] = useState([]);
-    const [selectedCourse, setSelectedCourse] = useState('');
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false);
+const TimetableViewer = () => {
+  const { user } = useContext(AuthContext);
+  const [timetables, setTimetables] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    console.log('TimetableViewer: Component mounted');
-    console.log('TimetableViewer: User:', JSON.stringify(user, null, 2));
-
-    useEffect(() => {
-      const fetchData = async () => {
-        setLoading(true);
-        try {
-          console.log('TimetableViewer: Fetching timetables and courses');
-          const token = localStorage.getItem('token');
-          const url = selectedCourse 
-            ? `${import.meta.env.VITE_API_URL}/api/timetable/filter?courseCode=${selectedCourse}`
-            : `${import.meta.env.VITE_API_URL}/api/timetable`;
-          const [timetableResponse, courseResponse] = await Promise.all([
-            axios.get(url, { headers: { 'x-auth-token': token } }),
-            axios.get(`${import.meta.env.VITE_API_URL}/api/courses`, { headers: { 'x-auth-token': token } }),
-          ]);
-          console.log('TimetableViewer: Fetched timetables:', timetableResponse.data);
-          console.log('TimetableViewer: Fetched courses:', courseResponse.data);
-          setTimetables(timetableResponse.data);
-          setCourses(user.role === 'student' 
-            ? courseResponse.data.filter(c => user.courseCodes?.includes(c.code))
-            : courseResponse.data);
-          setError(null);
-        } catch (err) {
-          console.error('TimetableViewer: Error fetching timetables:', err);
-          setError(err.response?.data?.msg || 'Failed to load timetable. Please try again.');
-        } finally {
-          setLoading(false);
-        }
-      };
-      if (user) {
-        fetchData();
+  useEffect(() => {
+    const fetchTimetables = async () => {
+      setIsLoading(true);
+      try {
+        console.log('Fetching timetables for user:', user?.email);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/timetable`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          params: { timestamp: Date.now() }, // Prevent cache
+        });
+        console.log('Timetables response:', response.data);
+        const fetchedTimetables = Array.isArray(response.data.timetables) ? response.data.timetables : [];
+        setTimetables(fetchedTimetables);
+      } catch (err) {
+        console.error('Fetch timetables error:', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
+        setError(err.response?.data?.msg || 'Failed to fetch timetables');
+      } finally {
+        setIsLoading(false);
       }
-    }, [user, selectedCourse]);
+    };
 
-    if (!user) {
-      return <div className="text-white text-center mt-8">Please log in to view your timetable.</div>;
+    if (user) {
+      fetchTimetables();
+    } else {
+      setIsLoading(false);
+      setError('Please log in to view timetables');
     }
+  }, [user]);
 
+  if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 text-center text-white">Your Timetable</h1>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300 mb-2">Filter by Course</label>
-          <select
-            value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            className="w-full max-w-xs rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3"
-          >
-            <option value="">All Courses</option>
-            {courses.map(course => (
-              <option key={course._id} value={course.code}>{course.code} - {course.name}</option>
-            ))}
-          </select>
+      <div className="min-h-screen bg-gray-800 flex justify-center items-center py-16">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-800 flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
+        <div className="bg-red-600 text-white p-4 rounded-lg max-w-3xl w-full">
+          <p>{error}</p>
         </div>
-        {error && (
-          <div className="bg-red-900 text-white p-3 rounded mb-4">{error}</div>
-        )}
-        {loading ? (
-          <div className="flex justify-center items-center p-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : timetables.length === 0 ? (
-          <div className="bg-gray-800 bg-opacity-70 rounded-lg p-8 text-center text-white">
-            <p className="text-xl">No timetable entries found.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="bg-gray-900 rounded-lg shadow-xl p-8 w-full max-w-4xl">
+        <h1 className="text-3xl font-bold text-white text-center mb-8">My Timetable</h1>
+        {timetables.length === 0 ? (
+          <div className="bg-gray-800 p-4 rounded-lg text-gray-400 text-center">
+            No timetables found. Please select courses in your profile.
           </div>
         ) : (
-          <div className="bg-gray-900 bg-opacity-70 rounded-lg p-6">
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-black bg-opacity-50 rounded-lg">
-                <thead>
-                  <tr className="bg-gray-800 text-left">
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Day</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Course</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Subject</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Room</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Time</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-gray-300">Status</th>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-gray-800 rounded-lg">
+              <thead>
+                <tr className="bg-gray-900 text-left text-gray-300 uppercase text-sm">
+                  <th className="px-6 py-4">Course</th>
+                  <th className="px-6 py-4">Subject</th>
+                  <th className="px-6 py-4">Room</th>
+                  <th className="px-6 py-4">Day</th>
+                  <th className="px-6 py-4">Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {timetables.map((timetable) => (
+                  <tr key={timetable._id} className="hover:bg-gray-700 transition-colors">
+                    <td className="px-6 py-4 text-white">{timetable.courseId?.code || 'N/A'}</td>
+                    <td className="px-6 py-4 text-white">{timetable.subject}</td>
+                    <td className="px-6 py-4 text-white">{timetable.roomId?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-white">{timetable.day}</td>
+                    <td className="px-6 py-4 text-white">
+                      {new Date(timetable.startTime).toLocaleTimeString('en-ZA', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}{' '}
+                      -{' '}
+                      {new Date(timetable.endTime).toLocaleTimeString('en-ZA', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {timetables.map((timetable) => (
-                    <tr key={timetable._id} className="hover:bg-gray-800">
-                      <td className="px-6 py-4">{timetable.day}</td>
-                      <td className="px-6 py-4">{timetable.courseId?.code}</td>
-                      <td className="px-6 py-4">{timetable.subject}</td>
-                      <td className="px-6 py-4">{timetable.roomId?.name}</td>
-                      <td className="px-6 py-4">
-                        {new Date(timetable.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                        {new Date(timetable.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="px-6 py-4">{timetable.roomId?.maintenance?.length > 0 ? 'Maintenance' : 'Active'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-  export default TimetableViewer;
+export default TimetableViewer;

@@ -7,16 +7,13 @@ const User = require('../models/User');
 dotenv.config();
 
 if (!process.env.MONGODB_URI) {
-  console.error('Error: MONGO_URI is not defined in .env');
+  console.error('Error: MONGODB_URI is not defined in .env');
   process.exit(1);
 }
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected successfully'))
   .catch((err) => {
     console.error('MongoDB connection error:', err.message);
@@ -37,11 +34,15 @@ const resetAdminPassword = async (email, newPassword) => {
       { email: email.toLowerCase() },
       {
         $set: {
-          name: 'Admin User',
+          firstName: 'Admin',
+          lastName: 'User',
           email: email.toLowerCase(),
           password: hashedPassword,
           role: 'admin',
           isVerified: true,
+          displayName: 'Admin User',
+          initials: 'AU',
+          avatar: 'https://placehold.co/100x100',
           createdAt: new Date(),
         },
       },
@@ -71,6 +72,10 @@ const resetAdminPassword = async (email, newPassword) => {
       email: verifyUser.email,
       role: verifyUser.role,
       isVerified: verifyUser.isVerified,
+      firstName: verifyUser.firstName,
+      lastName: verifyUser.lastName,
+      displayName: verifyUser.displayName,
+      initials: verifyUser.initials,
       passwordHashLength: verifyUser.password.length,
     });
     console.log('Password verification successful:', { email, isMatch });
@@ -89,5 +94,3 @@ const resetAdminPassword = async (email, newPassword) => {
 
 // Run the script
 resetAdminPassword('admin1@scmp.com', '@dmin25');
-
-///p@ss123 mfundomoloya19@gmail.com

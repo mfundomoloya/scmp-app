@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const bodyParser = require('body-parser');
 const userRoutes = require('./routes/userRoutes');
@@ -52,7 +53,6 @@ const limiter = rateLimit({
   skip: (req) => req.path.startsWith('/socket.io/'), // Exclude Socket.IO
 });
 app.use(limiter);
-
 app.use(express.static(path.join(__dirname, 'public')));
 
 
@@ -67,15 +67,33 @@ app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/timetable', timetableRoutes);
 app.use('/api/courses', courseRoutes);
 
-// Socket.IO setup
+// Socket authentication middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    console.log('Socket auth: No token provided');
+    return next(new Error('Authentication error: No token'));
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded;
+    console.log('Socket auth: Token verified for user:', socket.user.id);
+    next();
+  } catch (err) {
+    console.log('Socket auth error:', err.message);
+    next(new Error('Authentication error: Invalid token'));
+  }
+});
+
+// Socket connection handling
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
   socket.on('join', (userId) => {
     console.log('User joined room:', userId);
     socket.join(userId);
   });
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.id);
+  socket.on('disconnect', (reason) => {
+    console.log('Socket disconnected:', socket.id, reason);
   });
 });
 

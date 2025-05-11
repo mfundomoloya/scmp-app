@@ -11,14 +11,21 @@ const RoomList = () => {
   const fetchRooms = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      console.log('RoomList: Fetching rooms with token:', token ? '[REDACTED]' : null);
+      console.log('RoomList: API URL:', import.meta.env.VITE_API_URL);
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/rooms`, {
-        headers: { 'x-auth-token': localStorage.getItem('token') },
+        headers: { Authorization: `Bearer ${token}` },
       });
       console.log('RoomList: Rooms fetched:', response.data);
       setRooms(response.data);
       setError('');
     } catch (err) {
-      console.error('RoomList: Error fetching rooms:', err.response?.data || err);
+      console.error('RoomList: Error fetching rooms:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(err.response?.data?.message || 'Failed to fetch rooms');
     } finally {
       setLoading(false);
@@ -26,20 +33,32 @@ const RoomList = () => {
   };
 
   useEffect(() => {
-    fetchRooms();
-  }, []);
+    if (user) {
+      console.log('RoomList: Fetching rooms for user:', user.id, 'role:', user.role);
+      fetchRooms();
+    } else {
+      console.log('RoomList: No user, skipping fetchRooms');
+      setError('Please login to view rooms');
+    }
+  }, [user]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this room?')) return;
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      console.log('RoomList: Deleting room:', id);
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/rooms/${id}`, {
-        headers: { 'x-auth-token': localStorage.getItem('token') },
+        headers: { Authorization: `Bearer ${token}` },
       });
       console.log('RoomList: Room deleted:', id);
       fetchRooms();
     } catch (err) {
-      console.error('RoomList: Error deleting room:', err.response?.data || err);
+      console.error('RoomList: Error deleting room:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(err.response?.data?.message || 'Failed to delete room');
     } finally {
       setLoading(false);

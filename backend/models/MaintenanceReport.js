@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-  const maintenanceReportSchema = new mongoose.Schema({
+  const MaintenanceSchema = new mongoose.Schema({
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -33,9 +33,9 @@ const mongoose = require('mongoose');
     },
   });
 
-  maintenanceReportSchema.pre('save', function (next) {
+  MaintenanceSchema.pre('save', function (next) {
     this.updatedAt = Date.now();
     next();
   });
 
-  module.exports = mongoose.model('MaintenanceReport', maintenanceReportSchema);
+  module.exports = mongoose.model('MaintenanceReport', MaintenanceSchema);
