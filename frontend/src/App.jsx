@@ -32,6 +32,8 @@ import TimetableViewer from './pages/TimetableViewer';
 import TimetableImport from './pages/TimetableImport';
 import TimetableAdmin from './pages/TimetableAdmin';
 import ProfileSettings from './pages/ProfileSettings';
+import Announcements from './components/Announcements';
+import AnnouncementAdmin from './components/AnnouncementAdmin';
 
 function App() {
   return (
@@ -51,6 +53,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/profile" element={<ProfileSettings />} />
+            <Route path="/announcements" element={<Announcements />} />
             <Route
               path="/student"
               element={
@@ -166,6 +169,14 @@ function App() {
             />
             <Route
               path="/admin/timetables"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <TimetableAdmin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/announcements"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <TimetableAdmin />
