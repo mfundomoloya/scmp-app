@@ -17,38 +17,51 @@ const StudentDashboard = () => {
       const token = localStorage.getItem('token');
 
       try {
-        // Fetch upcoming classes from /api/timetables
+        // Fetch timetables
         const timetableRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/timetable`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         console.log('StudentDashboard: Timetable response:', timetableRes.data);
 
-        // Ensure timetableRes.data is an array
-        const timetableData = Array.isArray(timetableRes.data) ? timetableRes.data : [];
+        // Extract timetables array from response
+        const timetableData = Array.isArray(timetableRes.data.timetables)
+          ? timetableRes.data.timetables
+          : [];
 
-        // Filter for upcoming classes (e.g., today or tomorrow)
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(now.getDate() + 1);
-
+        // Map timetables (no date filter for debugging)
         const upcoming = timetableData
-          .filter(t => {
-            const classDate = new Date(`${t.day} ${t.time.split('-')[0]}`); // Parse day and start time
-            return classDate >= now && classDate <= tomorrow;
+          .map(t => {
+            // Validate required fields
+            if (!t.courseId?.code || !t.subject || !t.roomId?.name || !t.day || !t.startTime || !t.endTime) {
+              console.warn('Invalid timetable entry:', t);
+              return null;
+            }
+            // Format time (e.g., "06:00-09:30")
+            const start = new Date(t.startTime).toLocaleTimeString('en-ZA', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            });
+            const end = new Date(t.endTime).toLocaleTimeString('en-ZA', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            });
+            return {
+              id: t._id,
+              course: t.courseId.code, // e.g., "CS101"
+              title: t.subject, // e.g., "Algorithms"
+              time: `${t.day}, ${start}-${end}`, // e.g., "Thursday, 06:00-09:30"
+              room: t.roomId.name, // e.g., "Seminar Room B"
+            };
           })
-          .map(t => ({
-            id: t._id,
-            course: t.course,
-            title: t.subject,
-            time: `${t.day}, ${t.time}`,
-            room: t.room,
-          }))
+          .filter(t => t !== null)
           .slice(0, 2); // Limit to 2 for display
 
         setUpcomingClasses(upcoming);
 
-        // Fetch recent announcements from /api/announcements
+        // Fetch announcements
         const announcementRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/announcements`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -58,9 +71,9 @@ const StudentDashboard = () => {
         // Ensure announcementRes.data is an array
         const announcementData = Array.isArray(announcementRes.data) ? announcementRes.data : [];
 
-        // Filter for recent published announcements (e.g., last 7 days)
-        const sevenDaysAgo = new Date(now);
-        sevenDaysAgo.setDate(now.getDate() - 7);
+        // Filter for recent published announcements (last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         const recent = announcementData
           .filter(a => a.isPublished && new Date(a.createdAt) >= sevenDaysAgo)
