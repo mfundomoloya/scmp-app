@@ -13,12 +13,19 @@ const TimetableViewer = () => {
       setIsLoading(true);
       try {
         console.log('Fetching timetables for user:', user?.email);
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/timetable`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          params: { timestamp: Date.now() }, // Prevent cache
-        });
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/timetable`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+            params: { timestamp: Date.now() }, // Prevent cache
+          }
+        );
         console.log('Timetables response:', response.data);
-        const fetchedTimetables = Array.isArray(response.data.timetables) ? response.data.timetables : [];
+        const fetchedTimetables = Array.isArray(response.data.timetables)
+          ? response.data.timetables
+          : [];
         setTimetables(fetchedTimetables);
       } catch (err) {
         console.error('Fetch timetables error:', {
@@ -61,7 +68,9 @@ const TimetableViewer = () => {
   return (
     <div className="min-h-screen bg-gray-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="bg-gray-900 rounded-lg shadow-xl p-8 w-full max-w-4xl">
-        <h1 className="text-3xl font-bold text-white text-center mb-8">My Timetable</h1>
+        <h1 className="text-3xl font-bold text-white text-center mb-8">
+          My Timetable
+        </h1>
         {timetables.length === 0 ? (
           <div className="bg-gray-800 p-4 rounded-lg text-gray-400 text-center">
             No timetables found. Please select courses in your profile.
@@ -80,16 +89,28 @@ const TimetableViewer = () => {
               </thead>
               <tbody className="divide-y divide-gray-700">
                 {timetables.map((timetable) => (
-                  <tr key={timetable._id} className="hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4 text-white">{timetable.courseId?.code || 'N/A'}</td>
-                    <td className="px-6 py-4 text-white">{timetable.subject}</td>
-                    <td className="px-6 py-4 text-white">{timetable.roomId?.name || 'N/A'}</td>
+                  <tr
+                    key={timetable._id}
+                    className="hover:bg-gray-700 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-white">
+                      {timetable.courseId?.code || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-white">
+                      {timetable.subject}
+                    </td>
+                    <td className="px-6 py-4 text-white">
+                      {timetable.roomId?.name || 'N/A'}
+                    </td>
                     <td className="px-6 py-4 text-white">{timetable.day}</td>
                     <td className="px-6 py-4 text-white">
-                      {new Date(timetable.startTime).toLocaleTimeString('en-ZA', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}{' '}
+                      {new Date(timetable.startTime).toLocaleTimeString(
+                        'en-ZA',
+                        {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }
+                      )}{' '}
                       -{' '}
                       {new Date(timetable.endTime).toLocaleTimeString('en-ZA', {
                         hour: '2-digit',
