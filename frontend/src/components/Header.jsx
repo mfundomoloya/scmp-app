@@ -129,6 +129,14 @@ const Header = () => {
                     </li>
                     <li>
                       <Link
+                        to="/announcements"
+                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/announcements') ? 'text-[#3b82f6]' : ''}`}
+                      >
+                        Announcements
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
                         to="/maintenance/report"
                         className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/maintenance/report') ? 'text-[#3b82f6]' : ''}`}
                       >
@@ -185,6 +193,14 @@ const Header = () => {
                         className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/timetables') ? 'text-[#3b82f6]' : ''}`}
                       >
                         Manage Timetables
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/announcements"
+                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/announcements') ? 'text-[#3b82f6]' : ''}`}
+                      >
+                        Announcements
                       </Link>
                     </li>
                   </>
