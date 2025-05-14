@@ -1,22 +1,21 @@
-const express = require('express');
-  const router = express.Router();
-  const {protect} = require('../middleware/auth');
-  const multer = require('multer');
-  const { createTimetable,
-    getTimetables,
-    getAllTimetables,
-    getFilteredTimetables,
-    updateTimetable,
-    deleteTimetable, } = require('../controllers/timetableController');
+const express = require('express'); 
+const router = express.Router();
+const { protect, restrictTo } = require('../middleware/auth');
+const {
+  createTimetable,
+  getTimetables,
+  getAllTimetables,
+  getFilteredTimetables,
+  updateTimetable,
+  deleteTimetable,
+} = require('../controllers/timetableController');
 
-  const upload = multer({ storage: multer.memoryStorage() });
+router.get('/', protect, getTimetables);
+router.get('/lecturer', protect, restrictTo('lecturer'), getTimetables);
+router.get('/filter', protect, getFilteredTimetables);
+router.get('/all', protect, restrictTo('admin'), getAllTimetables);
+router.post('/', protect, restrictTo('lecturer', 'admin'), createTimetable);
+router.put('/:id', protect, restrictTo('lecturer', 'admin'), updateTimetable);
+router.delete('/:id', protect, restrictTo('lecturer', 'admin'), deleteTimetable);
 
-  router.get('/', protect, getTimetables);
-  router.get('/filter', protect, getFilteredTimetables);
-  // router.post('/import', auth, upload.single('file'), importTimetables);
-  router.get('/all', protect, getAllTimetables);
-  router.post('/', protect, createTimetable);
-  router.put('/:id', protect, updateTimetable);
-  router.delete('/:id', protect, deleteTimetable);
-
-  module.exports = router;
+module.exports = router;

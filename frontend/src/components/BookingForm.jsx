@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
+import { AuthContext } from '../context/AuthContext';
 
 const ErrorBoundary = ({ children }) => {
   const [hasError, setHasError] = useState(false);
@@ -21,35 +22,49 @@ const ErrorBoundary = ({ children }) => {
 };
 
 const BookingForm = ({ onBookingCreated }) => {
+  const { user } = useContext(AuthContext);
   const [rooms, setRooms] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [formData, setFormData] = useState({
     room: '',
     date: '',
     startTime: '',
     endTime: '',
+    courseId: '',
   });
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch rooms for dropdown
+  // Fetch rooms and courses for dropdown
   useEffect(() => {
-    const fetchRooms = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('BookingForm: Fetching rooms with token:', token ? '[REDACTED]' : null);
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/rooms`, {
+        console.log('BookingForm: Fetching data with token:', token ? '[REDACTED]' : null);
+
+        // Fetch rooms
+        const roomsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/rooms`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setRooms(response.data);
-        console.log('BookingForm: Fetched rooms:', response.data);
+        setRooms(roomsResponse.data);
+        console.log('BookingForm: Fetched rooms:', roomsResponse.data);
+
+        // Fetch courses for lecturers
+        if (user?.role === 'lecturer') {
+          const coursesResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/courses`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setCourses(coursesResponse.data);
+          console.log('BookingForm: Fetched courses:', coursesResponse.data);
+        }
       } catch (err) {
-        toast.error('Failed to fetch rooms');
-        console.error('BookingForm: Fetch rooms error:', err);
+        toast.error('Failed to fetch data');
+        console.error('BookingForm: Fetch data error:', err);
       }
     };
-    fetchRooms();
-  }, []);
+    fetchData();
+  }, [user]);
 
   // Fetch available slots when room or date changes
   useEffect(() => {
@@ -97,7 +112,11 @@ const BookingForm = ({ onBookingCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.room || !formData.date || !formData.startTime || !formData.endTime) {
-      toast.error('Please fill in all fields');
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    if (user?.role === 'lecturer' && !formData.courseId) {
+      toast.error('Please select a course');
       return;
     }
     try {
@@ -108,6 +127,7 @@ const BookingForm = ({ onBookingCreated }) => {
         date: formData.date,
         startTime: formData.startTime,
         endTime: formData.endTime,
+        ...(user?.role === 'lecturer' && { courseId: formData.courseId }),
       };
       console.log('BookingForm: Submitting booking:', bookingData);
       const response = await axios.post(
@@ -120,6 +140,7 @@ const BookingForm = ({ onBookingCreated }) => {
       toast.success('Booking created successfully');
       console.log('BookingForm: Booking created:', response.data);
       if (onBookingCreated) onBookingCreated();
+      setFormData({ room: '', date: '', startTime: '', endTime: '', courseId: '' });
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Failed to create booking');
       console.error('BookingForm: Create booking error:', err);
@@ -129,9 +150,7 @@ const BookingForm = ({ onBookingCreated }) => {
   };
 
   const formatTimeSlot = (slot) => {
-    const start = format(parseISO(slot.startTime), 'HH:mm', { timeZone: 'Africa/Johannesburg' });
-    const end = format(parseISO(slot.endTime), 'HH:mm', { timeZone: 'Africa/Johannesburg' });
-    return `${start}-${end}`;
+    return `${slot.startTime}-${slot.endTime}`;
   };
 
   return (
@@ -160,6 +179,29 @@ const BookingForm = ({ onBookingCreated }) => {
           <h2 className="text-2xl font-bold mb-6 text-center">Book Your Room</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {user?.role === 'lecturer' && (
+              <div>
+                <label htmlFor="courseId" className="block text-lg font-medium mb-2">
+                  Select Course
+                </label>
+                <select
+                  id="courseId"
+                  name="courseId"
+                  value={formData.courseId}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-700 rounded-md bg-black bg-opacity-50 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">-- Choose a course --</option>
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id} className="bg-gray-800">
+                      {course.code} - {course.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label htmlFor="room" className="block text-lg font-medium mb-2">
                 Select a Venue
@@ -255,7 +297,7 @@ const BookingForm = ({ onBookingCreated }) => {
 
             <button
               type="submit"
-              disabled={loading || !formData.room || !formData.date || !formData.startTime || !formData.endTime}
+              disabled={loading || !formData.room || !formData.date || !formData.startTime || !formData.endTime || (user?.role === 'lecturer' && !formData.courseId)}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 disabled:bg-gray-600 disabled:opacity-50 mt-6"
             >
               {loading ? (

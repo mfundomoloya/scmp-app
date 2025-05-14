@@ -34,6 +34,7 @@ import TimetableAdmin from './pages/TimetableAdmin';
 import ProfileSettings from './pages/ProfileSettings';
 import Announcements from './components/Announcements';
 import AnnouncementAdmin from './components/AnnouncementAdmin';
+import RequestHistory from './components/RequestHistory';
 
 function App() {
   return (
@@ -68,6 +69,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['lecturer']}>
                   <LecturerDashboard />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/requests"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'lecturer']}>
+                  <RequestHistory />
                 </ProtectedRoute>
               }
             />

@@ -22,6 +22,9 @@ const mongoose = require('mongoose');
       trim: true,
       minlength: 3,
       maxlength: 50,
+    }], lecturers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     }],
   }, { timestamps: true });
 
