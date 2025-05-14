@@ -129,6 +129,14 @@ const Header = () => {
                     </li>
                     <li>
                       <Link
+                        to="/requests"
+                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/requests') ? 'text-[#3b82f6]' : ''}`}
+                      >
+                        Requests
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
                         to="/announcements"
                         className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/announcements') ? 'text-[#3b82f6]' : ''}`}
                       >

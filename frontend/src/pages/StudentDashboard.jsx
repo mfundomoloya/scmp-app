@@ -2,13 +2,22 @@ import { useContext, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const StudentDashboard = () => {
   const { user } = useContext(AuthContext);
   const [upcomingClasses, setUpcomingClasses] = useState([]);
   const [recentAnnouncements, setRecentAnnouncements] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [lecturers, setLecturers] = useState([]);
+  const [requestForm, setRequestForm] = useState({
+    type: '',
+    courseId: '',
+    lecturerId: '',
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [formLoading, setFormLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -21,23 +30,18 @@ const StudentDashboard = () => {
         const timetableRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/timetable`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         console.log('StudentDashboard: Timetable response:', timetableRes.data);
 
-        // Extract timetables array from response
         const timetableData = Array.isArray(timetableRes.data.timetables)
           ? timetableRes.data.timetables
           : [];
 
-        // Map timetables (no date filter for debugging)
         const upcoming = timetableData
           .map(t => {
-            // Validate required fields
             if (!t.courseId?.code || !t.subject || !t.roomId?.name || !t.day || !t.startTime || !t.endTime) {
               console.warn('Invalid timetable entry:', t);
               return null;
             }
-            // Format time (e.g., "06:00-09:30")
             const start = new Date(t.startTime).toLocaleTimeString('en-ZA', {
               hour: '2-digit',
               minute: '2-digit',
@@ -50,28 +54,23 @@ const StudentDashboard = () => {
             });
             return {
               id: t._id,
-              course: t.courseId.code, // e.g., "CS101"
-              title: t.subject, // e.g., "Algorithms"
-              time: `${t.day}, ${start}-${end}`, // e.g., "Thursday, 06:00-09:30"
-              room: t.roomId.name, // e.g., "Seminar Room B"
+              course: t.courseId.code,
+              title: t.subject,
+              time: `${t.day}, ${start}-${end}`,
+              room: t.roomId.name,
             };
           })
           .filter(t => t !== null)
-          .slice(0, 2); // Limit to 2 for display
-
+          .slice(0, 2);
         setUpcomingClasses(upcoming);
 
         // Fetch announcements
         const announcementRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/announcements`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         console.log('StudentDashboard: Announcement response:', announcementRes.data);
 
-        // Ensure announcementRes.data is an array
         const announcementData = Array.isArray(announcementRes.data) ? announcementRes.data : [];
-
-        // Filter for recent published announcements (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -85,16 +84,28 @@ const StudentDashboard = () => {
               month: 'short',
             }),
           }))
-          .slice(0, 2); // Limit to 2 for display
-
+          .slice(0, 2);
         setRecentAnnouncements(recent);
+
+        // Fetch courses
+        const coursesRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/courses`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCourses(Array.isArray(coursesRes.data) ? coursesRes.data : []);
+
+        // Fetch lecturers
+        const lecturersRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/users?role=lecturer`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setLecturers(Array.isArray(lecturersRes.data) ? lecturersRes.data : []);
       } catch (err) {
         console.error('StudentDashboard: Fetch error:', {
           message: err.message,
           status: err.response?.status,
           data: err.response?.data,
         });
-        setError(err.response?.data?.msg || 'Failed to load dashboard data');
+        setError(err.response?.data?.message || 'Failed to load dashboard data');
+        toast.error(err.response?.data?.message || 'Failed to load dashboard data');
       } finally {
         setIsLoading(false);
       }
@@ -105,11 +116,40 @@ const StudentDashboard = () => {
     }
   }, [user]);
 
+  const handleRequestChange = (e) => {
+    setRequestForm({ ...requestForm, [e.target.name]: e.target.value });
+  };
+
+  const handleRequestSubmit = async (e) => {
+    e.preventDefault();
+    if (!requestForm.type || !requestForm.courseId || !requestForm.lecturerId) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/requests`, requestForm, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success('Request submitted successfully!');
+      setRequestForm({ type: '', courseId: '', lecturerId: '' });
+    } catch (err) {
+        console.error('StudentDashboard: Request submit error:', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
+      toast.error(err.response?.data?.message || 'Failed to submit request');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen relative pt-16">
-      {/* Background Image with Overlay */}
+    <div className="min-h-screen relative pt-20">
       <div
-        className="fixed inset-0 top-16 bg-cover bg-center z-0"
+        className="fixed inset-0 top-20 bg-cover bg-center z-0"
         style={{
           backgroundImage: 'url(/src/assets/lecture-hall.jpg)',
           backgroundPosition: 'center',
@@ -117,40 +157,32 @@ const StudentDashboard = () => {
       >
         <div className="absolute inset-0 bg-black bg-opacity-75"></div>
       </div>
-
-      {/* Content */}
       <div className="relative z-10 container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Loading State */}
           {isLoading && (
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600"></div>
             </div>
           )}
-
-          {/* Error State */}
           {error && (
             <div className="bg-red-600 text-white p-4 rounded-lg mb-6 text-center">
               {error}
             </div>
           )}
-
           {!isLoading && !error && (
             <>
-              {/* Welcome Banner */}
               <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
                 <h1 className="text-3xl font-bold text-black mb-4">
                   {user ? `Welcome, ${user.name}` : 'Student Dashboard'}
                 </h1>
                 <p className="text-lg text-gray-700 mb-6">
-                  Access your classes, bookings, and maintenance reports all in one
-                  place.
+                  Access your classes, bookings, requests, and maintenance reports all in one place.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Link
                     to="/bookings/new"
                     className="px-5 py-2.5 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors duration-200 shadow-md flex items-center"
-                    style={{ backgroundColor: '#2563EB', color: 'white' }}
+                    style={{ backgroundColor: '#3b82f6', color: 'white' }}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -171,7 +203,7 @@ const StudentDashboard = () => {
                   <Link
                     to="/timetable"
                     className="px-5 py-2.5 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors duration-200 shadow-md flex items-center"
-                    style={{ backgroundColor: '#2563EB', color: 'white' }}
+                    style={{ backgroundColor: '#3b82f6', color: 'white' }}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -190,9 +222,30 @@ const StudentDashboard = () => {
                     View Timetable
                   </Link>
                   <Link
+                    to="/requests"
+                    className="px-5 py-2.5 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors duration-200 shadow-md flex items-center"
+                    style={{ backgroundColor: '#3b82f6', color: 'white' }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                      />
+                    </svg>
+                    My Requests
+                  </Link>
+                  <Link
                     to="/maintenance/new"
                     className="px-5 py-2.5 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors duration-200 shadow-md flex items-center"
-                    style={{ backgroundColor: '#2563EB', color: 'white' }}
+                    style={{ backgroundColor: '#3b82f6', color: 'white' }}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -212,20 +265,17 @@ const StudentDashboard = () => {
                   </Link>
                 </div>
               </div>
-
-              {/* Dashboard Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Upcoming Classes */}
                 <div className="lg:col-span-2">
-                  <div className="bg-white rounded-xl shadow-lg p-6 h-full">
+                  <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                     <h2 className="text-xl font-semibold text-black mb-4 flex items-center">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="h-5 w-5 mr-2"
                         fill="none"
                         viewBox="0 0 24 24"
-                        stroke="#2563EB"
-                        style={{ color: '#2563EB' }}
+                        stroke="#3b82f6"
+                        style={{ color: '#3b82f6' }}
                       >
                         <path
                           strokeLinecap="round"
@@ -236,14 +286,13 @@ const StudentDashboard = () => {
                       </svg>
                       Upcoming Classes
                     </h2>
-
                     {upcomingClasses.length > 0 ? (
                       <div className="space-y-3">
                         {upcomingClasses.map((classItem) => (
                           <div
                             key={classItem.id}
                             className="bg-gray-50 rounded-lg p-4 border-l-4 hover:shadow-md transition-shadow duration-200"
-                            style={{ borderLeftColor: '#2563EB' }}
+                            style={{ borderLeftColor: '#3b82f6' }}
                           >
                             <div className="flex justify-between items-start">
                               <div>
@@ -256,10 +305,7 @@ const StudentDashboard = () => {
                               </div>
                               <span
                                 className="inline-block text-sm px-3 py-1 rounded-full"
-                                style={{
-                                  backgroundColor: '#EFF6FF',
-                                  color: '#2563EB',
-                                }}
+                                style={{ backgroundColor: '#EFF6FF', color: '#3b82f6' }}
                               >
                                 {classItem.room}
                               </span>
@@ -273,18 +319,17 @@ const StudentDashboard = () => {
                         <Link
                           to="/profile"
                           className="mt-2 inline-block hover:underline"
-                          style={{ color: '#2563EB' }}
+                          style={{ color: '#3b82f6' }}
                         >
                           Update your course selection
                         </Link>
                       </div>
                     )}
-
                     <div className="mt-6 text-right">
                       <Link
                         to="/timetable"
                         className="flex items-center justify-end font-medium"
-                        style={{ color: '#2563EB' }}
+                        style={{ color: '#3b82f6' }}
                       >
                         View Full Timetable
                         <svg
@@ -302,11 +347,6 @@ const StudentDashboard = () => {
                       </Link>
                     </div>
                   </div>
-                </div>
-
-                {/* Quick Links & Announcements */}
-                <div className="space-y-6">
-                  {/* Quick Links */}
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-semibold text-black mb-4 flex items-center">
                       <svg
@@ -314,8 +354,101 @@ const StudentDashboard = () => {
                         className="h-5 w-5 mr-2"
                         fill="none"
                         viewBox="0 0 24 24"
-                        stroke="#2563EB"
-                        style={{ color: '#2563EB' }}
+                        stroke="#3b82f6"
+                        style={{ color: '#3b82f6' }}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                        />
+                      </svg>
+                      Submit a Request
+                    </h2>
+                    <form onSubmit={handleRequestSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Request Type</label>
+                        <select
+                          name="type"
+                          value={requestForm.type}
+                          onChange={handleRequestChange}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                          disabled={formLoading}
+                        >
+                          <option value="">Select Type</option>
+                          <option value="Room Extension">Room Extension</option>
+                          <option value="Assignment Extension">Assignment Extension</option>
+                          <option value="Exam Support">Exam Support</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Course</label>
+                        <select
+                          name="courseId"
+                          value={requestForm.courseId}
+                          onChange={handleRequestChange}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                          disabled={formLoading}
+                        >
+                          <option value="">Select Course</option>
+                          {courses.length > 0 ? (
+                            courses.map(course => (
+                              <option key={course._id} value={course._id}>
+                                {course.code} - {course.name}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="" disabled>No courses available</option>
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Lecturer</label>
+                        <select
+                          name="lecturerId"
+                          value={requestForm.lecturerId}
+                          onChange={handleRequestChange}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required
+                          disabled={formLoading}
+                        >
+                          <option value="">Select Lecturer</option>
+                          {lecturers.length > 0 ? (
+                            lecturers.map(lecturer => (
+                              <option key={lecturer._id} value={lecturer._id}>
+                                {lecturer.name}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="" disabled>No lecturers available</option>
+                          )}
+                        </select>
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: formLoading ? '#93c5fd' : '#3b82f6' }}
+                        disabled={formLoading}
+                      >
+                        {formLoading ? 'Submitting...' : 'Submit Request'}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h2 className="text-xl font-semibold text-black mb-4 flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="#3b82f6"
+                        style={{ color: '#3b82f6' }}
                       >
                         <path
                           strokeLinecap="round"
@@ -336,8 +469,8 @@ const StudentDashboard = () => {
                           className="h-5 w-5 mr-3"
                           fill="none"
                           viewBox="0 0 24 24"
-                          stroke="#2563EB"
-                          style={{ color: '#2563EB' }}
+                          stroke="#3b82f6"
+                          style={{ color: '#3b82f6' }}
                         >
                           <path
                             strokeLinecap="round"
@@ -349,6 +482,27 @@ const StudentDashboard = () => {
                         My Bookings
                       </Link>
                       <Link
+                        to="/requests"
+                        className="flex items-center p-2 rounded-lg text-black hover:bg-blue-50 transition-colors duration-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 mr-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="#3b82f6"
+                          style={{ color: '#3b82f6' }}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                          />
+                        </svg>
+                        My Requests
+                      </Link>
+                      <Link
                         to="/profile"
                         className="flex items-center p-2 rounded-lg text-black hover:bg-blue-50 transition-colors duration-200"
                       >
@@ -357,8 +511,8 @@ const StudentDashboard = () => {
                           className="h-5 w-5 mr-3"
                           fill="none"
                           viewBox="0 0 24 24"
-                          stroke="#2563EB"
-                          style={{ color: '#2563EB' }}
+                          stroke="#3b82f6"
+                          style={{ color: '#3b82f6' }}
                         >
                           <path
                             strokeLinecap="round"
@@ -378,8 +532,8 @@ const StudentDashboard = () => {
                           className="h-5 w-5 mr-3"
                           fill="none"
                           viewBox="0 0 24 24"
-                          stroke="#2563EB"
-                          style={{ color: '#2563EB' }}
+                          stroke="#3b82f6"
+                          style={{ color: '#3b82f6' }}
                         >
                           <path
                             strokeLinecap="round"
@@ -392,8 +546,6 @@ const StudentDashboard = () => {
                       </Link>
                     </div>
                   </div>
-
-                  {/* Recent Announcements */}
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-semibold text-black mb-4 flex items-center">
                       <svg
@@ -401,8 +553,8 @@ const StudentDashboard = () => {
                         className="h-5 w-5 mr-2"
                         fill="none"
                         viewBox="0 0 24 24"
-                        stroke="#2563EB"
-                        style={{ color: '#2563EB' }}
+                        stroke="#3b82f6"
+                        style={{ color: '#3b82f6' }}
                       >
                         <path
                           strokeLinecap="round"
@@ -413,7 +565,6 @@ const StudentDashboard = () => {
                       </svg>
                       Announcements
                     </h2>
-
                     {recentAnnouncements.length > 0 ? (
                       <div className="space-y-3">
                         {recentAnnouncements.map((announcement) => (

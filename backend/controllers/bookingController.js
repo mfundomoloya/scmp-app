@@ -2,6 +2,7 @@ const Booking = require('../models/Booking');
 const Room = require('../models/Room');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const Timetable = require('../models/Timetable');
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -12,22 +13,20 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Helper function to format dates as dd-mm-yyyy
 const formatDate = (date) => {
   const d = new Date(date);
   if (isNaN(d)) return 'Invalid Date';
   return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
 };
 
-// Helper function to format time as HH:mm
-const formatTime = (dateString) => {
-  const t = new Date(dateString);
+const formatTime = (time) => {
+  const t = new Date(`1970-01-01T${time}:00`);
   if (isNaN(t)) return 'Invalid Time';
   return t.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Johannesburg' });
 };
 
 const createBooking = async (req, res) => {
-  const { room, date, startTime, endTime } = req.body;
+  const { room, date, startTime, endTime, courseId } = req.body;
   try {
     if (!room || !date || !startTime || !endTime) {
       return res.status(400).json({ msg: 'All fields are required' });
@@ -38,7 +37,6 @@ const createBooking = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid date format' });
     }
 
-    // Check room maintenance
     const roomData = await Room.findOne({ name: room });
     if (!roomData) {
       return res.status(404).json({ msg: 'Room not found' });
@@ -52,7 +50,6 @@ const createBooking = async (req, res) => {
       return res.status(400).json({ msg: 'Room is under maintenance on this date' });
     }
 
-    // Check for overlapping bookings
     const overlappingBookings = await Booking.find({
       room,
       date: {
@@ -71,17 +68,61 @@ const createBooking = async (req, res) => {
       return res.status(400).json({ msg: 'Room is already booked for this time slot' });
     }
 
-    const booking = new Booking({
+    // Check timetable conflicts
+    const dayName = parsedDate.toLocaleDateString('en-US', { weekday: 'long' });
+    const timetableConflicts = await Timetable.find({
+      roomId: roomData._id,
+      day: dayName,
+    }).populate('courseId', 'code');
+    const hasTimetableConflict = timetableConflicts.some(t => {
+      const tStart = new Date(t.startTime).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const tEnd = new Date(t.endTime).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return startTime < tEnd && endTime > tStart;
+    });
+    if (hasTimetableConflict) {
+      return res.status(400).json({ msg: 'Room is reserved for a timetable slot' });
+    }
+
+    const isLecturer = req.user.role === 'lecturer';
+    const bookingData = {
       userId: req.user.id,
       room,
       date: parsedDate,
       startTime,
       endTime,
-      status: 'pending',
-    });
+      status: isLecturer ? 'confirmed' : 'pending',
+    };
+
+    if (isLecturer) {
+      bookingData.courseId = courseId || null;
+      bookingData.lecturerId = req.user.id;
+    }
+
+    const booking = new Booking(bookingData);
     await booking.save();
     const formattedDate = formatDate(booking.date);
     console.log('Booking created:', { id: booking._id });
+
+    if (isLecturer) {
+      const user = await User.findById(booking.userId);
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: 'Booking Confirmed',
+        text: `Your booking for ${booking.room} on ${formattedDate} from ${startTime} to ${endTime} has been confirmed.`,
+      });
+
+      const notification = new Notification({
+        userId: booking.userId,
+        message: `Your booking for ${booking.room} on ${formattedDate} from ${startTime} to ${endTime} has been confirmed.`,
+        read: false,
+      });
+      await notification.save();
+
+      const io = req.app.get('io');
+      io.to(booking.userId.toString()).emit('notification', notification);
+    }
+
     res.status(201).json(booking);
   } catch (err) {
     console.error('Create booking error:', err);
@@ -98,16 +139,17 @@ const getBookings = async (req, res) => {
     }
 
     let query = {};
-    if (req.user.role !== 'admin') {
+    if (req.user.role === 'lecturer') {
+      query.lecturerId = req.user.id;
+    } else if (req.user.role !== 'admin') {
       query.userId = req.user.id;
     }
 
     const bookings = await Booking.find(query)
       .populate('userId', 'name email')
+      .populate('courseId', 'code name')
       .sort({ date: -1 });
     console.log('Get bookings: count:', bookings.length);
-    console.log('Get bookings: rooms:', bookings.map(b => b.room));
-    console.log('Get bookings: userIds:', bookings.map(b => b.userId?._id?.toString()));
     res.json(bookings);
   } catch (err) {
     console.error('Error fetching bookings:', err);
@@ -117,12 +159,12 @@ const getBookings = async (req, res) => {
 
 const cancelBooking = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      $or: [{ userId: req.user.id }, { lecturerId: req.user.id }],
+    });
     if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-    if (booking.userId.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ msg: 'Unauthorized' });
+      return res.status(404).json({ msg: 'Booking not found or unauthorized' });
     }
     booking.status = 'cancelled';
     await booking.save();
@@ -132,7 +174,6 @@ const cancelBooking = async (req, res) => {
     const formattedStartTime = formatTime(booking.startTime);
     const formattedEndTime = formatTime(booking.endTime);
 
-    // Send email notification
     const user = await User.findById(booking.userId);
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -141,7 +182,6 @@ const cancelBooking = async (req, res) => {
       text: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been cancelled.`,
     });
 
-    // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
       message: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been cancelled.`,
@@ -149,7 +189,6 @@ const cancelBooking = async (req, res) => {
     });
     await notification.save();
 
-    // Emit WebSocket notification
     const io = req.app.get('io');
     io.to(booking.userId.toString()).emit('notification', notification);
 
@@ -184,7 +223,6 @@ const updateStatus = async (req, res) => {
     const formattedStartTime = formatTime(booking.startTime);
     const formattedEndTime = formatTime(booking.endTime);
 
-    // Send email notification
     const user = await User.findById(booking.userId);
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -193,7 +231,6 @@ const updateStatus = async (req, res) => {
       text: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been updated to ${status}.`,
     });
 
-    // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
       message: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been updated to ${status}.`,
@@ -201,7 +238,6 @@ const updateStatus = async (req, res) => {
     });
     await notification.save();
 
-    // Emit WebSocket notification
     const io = req.app.get('io');
     io.to(booking.userId.toString()).emit('notification', notification);
 
@@ -232,7 +268,6 @@ const approveBooking = async (req, res) => {
     const formattedStartTime = formatTime(booking.startTime);
     const formattedEndTime = formatTime(booking.endTime);
 
-    // Send email notification
     const user = await User.findById(booking.userId);
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -241,7 +276,6 @@ const approveBooking = async (req, res) => {
       text: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been approved.`,
     });
 
-    // Create in-app notification
     const notification = new Notification({
       userId: booking.userId,
       message: `Your booking for ${booking.room} on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime} has been approved.`,
@@ -249,7 +283,6 @@ const approveBooking = async (req, res) => {
     });
     await notification.save();
 
-    // Emit WebSocket notification
     const io = req.app.get('io');
     io.to(booking.userId.toString()).emit('notification', notification);
 
@@ -262,7 +295,7 @@ const approveBooking = async (req, res) => {
 
 const getAvailableSlots = async (req, res) => {
   try {
-    const { date, roomId } = req.query;
+    const { date, room } = req.query;
     if (!date) {
       return res.status(400).json({ msg: 'Date is required' });
     }
@@ -274,8 +307,8 @@ const getAvailableSlots = async (req, res) => {
     const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
 
-    const rooms = roomId ? await Room.findById(roomId) : await Room.find();
-    if (!rooms || (roomId && !rooms)) {
+    const rooms = room ? await Room.findOne({ name: room }) : await Room.find();
+    if (!rooms || (room && !rooms)) {
       return res.status(404).json({ msg: 'Room(s) not found' });
     }
 
@@ -284,9 +317,15 @@ const getAvailableSlots = async (req, res) => {
 
     for (const room of roomList) {
       const bookings = await Booking.find({
-        room: room._id,
-        startTime: { $lte: endOfDay },
-        endTime: { $gte: startOfDay },
+        room: room.name,
+        date: { $gte: startOfDay, $lte: endOfDay },
+        status: { $ne: 'cancelled' },
+      });
+
+      const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+      const timetables = await Timetable.find({
+        roomId: room._id,
+        day: dayName,
       });
 
       const availableSlots = [];
@@ -296,15 +335,18 @@ const getAvailableSlots = async (req, res) => {
       while (currentTime < endTime) {
         const slotEnd = new Date(currentTime.getTime() + 30 * 60 * 1000);
         const isBooked = bookings.some(
-          (b) => b.startTime < slotEnd && b.endTime > currentTime
+          (b) => new Date(`1970-01-01T${b.startTime}`) < slotEnd && new Date(`1970-01-01T${b.endTime}`) > currentTime
+        );
+        const isTimetable = timetables.some(
+          (t) => new Date(t.startTime) < slotEnd && new Date(t.endTime) > currentTime
         );
         const isMaintenance = room.maintenance.some(
-          (m) => m.startDate <= slotEnd && m.endDate >= currentTime
+          (m) => new Date(m.startDate) <= slotEnd && new Date(m.endDate) >= currentTime
         );
-        if (!isBooked && !isMaintenance) {
+        if (!isBooked && !isTimetable && !isMaintenance) {
           availableSlots.push({
-            startTime: new Date(currentTime),
-            endTime: slotEnd,
+            startTime: currentTime.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            endTime: slotEnd.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false }),
           });
         }
         currentTime = slotEnd;

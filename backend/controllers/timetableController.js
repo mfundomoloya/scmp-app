@@ -2,6 +2,7 @@ const Timetable = require('../models/Timetable');
 const Course = require('../models/Course');
 const Room = require('../models/Room');
 const User = require('../models/User');
+const Booking = require('../models/Booking');
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -18,7 +19,7 @@ const detectConflicts = (timetables) => {
     for (let j = i + 1; j < timetables.length; j++) {
       const t1 = timetables[i];
       const t2 = timetables[j];
-      if (t1.day === t2.day) {
+      if (t1.day === t2.day && t1.roomId.toString() === t2.roomId.toString()) {
         const t1Start = new Date(t1.startTime);
         const t1End = new Date(t1.endTime);
         const t2Start = new Date(t2.startTime);
@@ -40,7 +41,8 @@ const createTimetable = async (req, res) => {
     console.log('Create timetable: req.body:', JSON.stringify(req.body, null, 2));
     console.log('Create timetable: req.user:', JSON.stringify(req.user, null, 2));
 
-    if (req.user.role !== 'admin') {
+    const isLecturer = req.user.role === 'lecturer';
+    if (!isLecturer && req.user.role !== 'admin') {
       console.error('Create timetable: Unauthorized');
       return res.status(403).json({ msg: 'Unauthorized' });
     }
@@ -68,18 +70,15 @@ const createTimetable = async (req, res) => {
       return res.status(404).json({ msg: `Room not found: ${roomName}` });
     }
 
-    console.log(`Create timetable: Finding students for course: ${courseCode}`);
     const students = await User.find({ courseCodes: courseCode, role: 'student' }).select('_id email role');
-    console.log(`Create timetable: Found ${students.length} students:`, JSON.stringify(students, null, 2));
-    if (students.length === 0) {
-      console.warn(`Create timetable: No students found for course: ${courseCode}`);
-    }
+    console.log(`Create timetable: Found ${students.length} students`);
 
     let lecturers = [];
-    if (lecturerEmails) {
+    if (isLecturer) {
+      lecturers = [await User.findById(req.user.id).select('_id email role')];
+    } else if (lecturerEmails) {
       const lecturerEmailArray = lecturerEmails.split(',').map(email => email.trim());
       lecturers = await User.find({ email: { $in: lecturerEmailArray }, role: 'lecturer' }).select('_id email role');
-      console.log(`Create timetable: Found ${lecturers.length} lecturers:`, JSON.stringify(lecturers, null, 2));
       if (lecturers.length !== lecturerEmailArray.length) {
         console.error('Create timetable: Some lecturers not found');
         return res.status(404).json({ msg: 'One or more lecturers not found' });
@@ -100,8 +99,26 @@ const createTimetable = async (req, res) => {
       return res.status(400).json({ msg: 'End time must be after start time' });
     }
 
+    // Check booking conflicts
+    const bookings = await Booking.find({
+      room: room.name,
+      status: { $ne: 'cancelled' },
+    });
+    const hasBookingConflict = bookings.some(b => {
+      const bookingDate = new Date(b.date);
+      const bookingDay = bookingDate.toLocaleDateString('en-US', { weekday: 'long' });
+      if (bookingDay !== day) return false;
+      const bStart = new Date(`1970-01-01T${b.startTime}`);
+      const bEnd = new Date(`1970-01-01T${b.endTime}`);
+      return startTimeDate < bEnd && endTimeDate > bStart;
+    });
+    if (hasBookingConflict) {
+      return res.status(400).json({ msg: 'Room is booked during this time slot' });
+    }
+
     const timetable = new Timetable({
       courseId: course._id,
+      lecturerId: isLecturer ? req.user.id : lecturers[0]?._id,
       subject,
       roomId: room._id,
       userIds: userIds.map(user => user._id),
@@ -145,7 +162,13 @@ const createTimetable = async (req, res) => {
 const getTimetables = async (req, res) => {
   try {
     console.log('Get timetables: req.user:', JSON.stringify(req.user, null, 2));
-    const query = req.user.role === 'student' ? { userIds: req.user.id } : {};
+    let query = {};
+    if (req.user.role === 'student') {
+      query.userIds = req.user.id;
+    } else if (req.user.role === 'lecturer' && req.path.includes('/lecturer')) {
+      query.lecturerId = req.user.id;
+    }
+
     const timetables = await Timetable.find(query)
       .populate('courseId', 'code name')
       .populate('roomId', 'name maintenance')
@@ -163,10 +186,6 @@ const getTimetables = async (req, res) => {
 const getAllTimetables = async (req, res) => {
   try {
     console.log('Get all timetables: req.user:', JSON.stringify(req.user, null, 2));
-    if (req.user.role !== 'admin') {
-      console.error('Get all timetables: Unauthorized');
-      return res.status(403).json({ msg: 'Unauthorized' });
-    }
     const timetables = await Timetable.find()
       .populate('courseId', 'code name')
       .populate('roomId', 'name maintenance')
@@ -198,9 +217,12 @@ const getFilteredTimetables = async (req, res) => {
       return res.status(404).json({ msg: `Course not found: ${courseCode}` });
     }
 
-    const query = req.user.role === 'student'
-      ? { courseId: course._id, userIds: req.user.id }
-      : { courseId: course._id };
+    let query = { courseId: course._id };
+    if (req.user.role === 'student') {
+      query.userIds = req.user.id;
+    } else if (req.user.role === 'lecturer') {
+      query.lecturerId = req.user.id;
+    }
 
     const timetables = await Timetable.find(query)
       .populate('courseId', 'code name')
@@ -223,7 +245,8 @@ const updateTimetable = async (req, res) => {
     console.log('Update timetable: req.user:', JSON.stringify(req.user, null, 2));
     console.log('Update timetable: req.params.id:', req.params.id);
 
-    if (req.user.role !== 'admin') {
+    const isLecturer = req.user.role === 'lecturer';
+    if (!isLecturer && req.user.role !== 'admin') {
       console.error('Update timetable: Unauthorized');
       return res.status(403).json({ msg: 'Unauthorized' });
     }
@@ -239,6 +262,11 @@ const updateTimetable = async (req, res) => {
     if (!timetable) {
       console.error('Update timetable: Timetable not found');
       return res.status(404).json({ msg: 'Timetable not found' });
+    }
+
+    if (isLecturer && timetable.lecturerId.toString() !== req.user.id) {
+      console.error('Update timetable: Unauthorized lecturer');
+      return res.status(403).json({ msg: 'Unauthorized' });
     }
 
     const course = await Course.findOne({ code: courseCode });
@@ -257,15 +285,15 @@ const updateTimetable = async (req, res) => {
       return res.status(404).json({ msg: `Room not found: ${roomName}` });
     }
 
-    console.log(`Update timetable: Finding students for course: ${courseCode}`);
     const students = await User.find({ courseCodes: courseCode, role: 'student' }).select('_id email role');
-    console.log(`Update timetable: Found ${students.length} students:`, JSON.stringify(students, null, 2));
+    console.log(`Update timetable: Found ${students.length} students`);
 
     let lecturers = [];
-    if (lecturerEmails) {
+    if (isLecturer) {
+      lecturers = [await User.findById(req.user.id).select('_id email role')];
+    } else if (lecturerEmails) {
       const lecturerEmailArray = lecturerEmails.split(',').map(email => email.trim());
       lecturers = await User.find({ email: { $in: lecturerEmailArray }, role: 'lecturer' }).select('_id email role');
-      console.log(`Update timetable: Found ${lecturers.length} lecturers:`, JSON.stringify(lecturers, null, 2));
       if (lecturers.length !== lecturerEmailArray.length) {
         console.error('Update timetable: Some lecturers not found');
         return res.status(404).json({ msg: 'One or more lecturers not found' });
@@ -286,7 +314,25 @@ const updateTimetable = async (req, res) => {
       return res.status(400).json({ msg: 'End time must be after start time' });
     }
 
+    // Check booking conflicts
+    const bookings = await Booking.find({
+      room: room.name,
+      status: { $ne: 'cancelled' },
+    });
+    const hasBookingConflict = bookings.some(b => {
+      const bookingDate = new Date(b.date);
+      const bookingDay = bookingDate.toLocaleDateString('en-US', { weekday: 'long' });
+      if (bookingDay !== day) return false;
+      const bStart = new Date(`1970-01-01T${b.startTime}`);
+      const bEnd = new Date(`1970-01-01T${b.endTime}`);
+      return startTimeDate < bEnd && endTimeDate > bStart;
+    });
+    if (hasBookingConflict) {
+      return res.status(400).json({ msg: 'Room is booked during this time slot' });
+    }
+
     timetable.courseId = course._id;
+    timetable.lecturerId = isLecturer ? req.user.id : lecturers[0]?._id || timetable.lecturerId;
     timetable.subject = subject;
     timetable.roomId = room._id;
     timetable.userIds = userIds.map(user => user._id);
@@ -314,7 +360,8 @@ const deleteTimetable = async (req, res) => {
     console.log('Delete timetable: req.user:', JSON.stringify(req.user, null, 2));
     console.log('Delete timetable: req.params.id:', req.params.id);
 
-    if (req.user.role !== 'admin') {
+    const isLecturer = req.user.role === 'lecturer';
+    if (!isLecturer && req.user.role !== 'admin') {
       console.error('Delete timetable: Unauthorized');
       return res.status(403).json({ msg: 'Unauthorized' });
     }
@@ -323,6 +370,11 @@ const deleteTimetable = async (req, res) => {
     if (!timetable) {
       console.error('Delete timetable: Timetable not found');
       return res.status(404).json({ msg: 'Timetable not found' });
+    }
+
+    if (isLecturer && timetable.lecturerId.toString() !== req.user.id) {
+      console.error('Delete timetable: Unauthorized lecturer');
+      return res.status(403).json({ msg: 'Unauthorized' });
     }
 
     await timetable.deleteOne();

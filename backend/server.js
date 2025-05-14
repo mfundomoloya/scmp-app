@@ -16,6 +16,7 @@ const announcementsRoutes = require('./routes/announcementsRoutes');
 const notificationRoutes = require('./routes/notification');
 const roomRoutes = require('./routes/roomsRoutes');
 const courseRoutes = require('./routes/courseRoutes');
+const requestRoutes = require('./routes/requestRoutes');
 const multer = require('multer');
 const path = require('path');
 
@@ -57,7 +58,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 //using the routes
-app.use('/api/users', upload.single('avatar'), userRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/announcements', announcementsRoutes);
@@ -66,6 +67,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/timetable', timetableRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/requests', requestRoutes);
 
 // Socket authentication middleware
 io.use((socket, next) => {
