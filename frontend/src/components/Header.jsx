@@ -4,6 +4,15 @@ import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
 
 const Header = () => {
+  // Define colors explicitly, matching the footer approach
+  const blueColor = '#1d4ed8'; // blue-700 equivalent
+  const veryLightBlueColor = '#eff6ff'; // blue-50 equivalent
+  const mediumBlueColor = '#2563eb'; // blue-600 equivalent
+  const brightBlueColor = '#3b82f6'; // blue-500 equivalent
+  const blackColor = '#000000';
+  const whiteColor = '#ffffff';
+  const redColor = '#ef4444'; // red-500 equivalent
+
   const { user, logout, loading } = useContext(AuthContext);
   const { notifications, markAsRead } = useContext(NotificationContext);
   const navigate = useNavigate();
@@ -46,10 +55,7 @@ const Header = () => {
       ) {
         setShowNotifications(false);
       }
-      if (
-        profileRef.current &&
-        !profileRef.current.contains(event.target)
-      ) {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
         setShowProfileDropdown(false);
       }
     };
@@ -65,7 +71,10 @@ const Header = () => {
 
   if (loading) {
     return (
-      <header className="bg-black text-white py-5 shadow-md">
+      <header
+        style={{ backgroundColor: whiteColor, color: blackColor }}
+        className="py-5 shadow-md"
+      >
         <div className="container mx-auto px-8">
           <p>Loading...</p>
         </div>
@@ -73,11 +82,32 @@ const Header = () => {
     );
   }
 
+  const getLinkStyle = (path) => {
+    const baseStyle = {
+      color: blueColor, // Use blueColor instead of blackColor
+      textDecoration: 'none',
+      transition: 'color 0.15s',
+      fontWeight: '500',
+    };
+
+    if (isActive(path)) {
+      return {
+        ...baseStyle,
+        color: brightBlueColor,
+      };
+    }
+
+    return baseStyle;
+  };
+
   return (
-    <header className="bg-black text-white py-5 shadow-md">
+    <header style={{ backgroundColor: whiteColor }} className="py-5 shadow-md">
       <div className="container mx-auto flex justify-between items-center px-8">
         <Link to="/" className="no-underline flex items-center">
-          <div className="bg-[#3b82f6] p-2.5 mr-3 rounded">
+          <div
+            style={{ backgroundColor: brightBlueColor }}
+            className="p-2.5 mr-3 rounded"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6"
@@ -87,7 +117,18 @@ const Header = () => {
               <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold">Smart Campus</h1>
+          <h1
+            className="text-2xl font-bold mr-12"
+            style={{
+              background: `linear-gradient(90deg, ${blueColor} 0%, ${brightBlueColor} 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              fontWeight: 'bold',
+            }}
+          >
+            Smart Campus
+          </h1>
         </Link>
         <nav className="flex-1 flex justify-end">
           <ul className="list-none flex items-center space-x-8">
@@ -96,7 +137,14 @@ const Header = () => {
                 <li>
                   <Link
                     to="/about"
-                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/about') ? 'text-[#3b82f6]' : ''}`}
+                    style={getLinkStyle('/about')}
+                    onMouseOver={(e) =>
+                      !isActive('/about') &&
+                      (e.target.style.color = brightBlueColor)
+                    }
+                    onMouseOut={(e) =>
+                      !isActive('/about') && (e.target.style.color = whiteColor)
+                    }
                   >
                     About
                   </Link>
@@ -104,7 +152,15 @@ const Header = () => {
                 <li>
                   <Link
                     to="/contact"
-                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/contact') ? 'text-[#3b82f6]' : ''}`}
+                    style={getLinkStyle('/contact')}
+                    onMouseOver={(e) =>
+                      !isActive('/contact') &&
+                      (e.target.style.color = brightBlueColor)
+                    }
+                    onMouseOut={(e) =>
+                      !isActive('/contact') &&
+                      (e.target.style.color = whiteColor)
+                    }
                   >
                     Contact
                   </Link>
@@ -114,7 +170,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/timetable"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/timetable') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/timetable')}
+                        onMouseOver={(e) =>
+                          !isActive('/timetable') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/timetable') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Timetable
                       </Link>
@@ -122,7 +186,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/bookings"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/bookings') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/bookings')}
+                        onMouseOver={(e) =>
+                          !isActive('/bookings') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/bookings') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Bookings
                       </Link>
@@ -130,7 +202,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/requests"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/requests') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/requests')}
+                        onMouseOver={(e) =>
+                          !isActive('/requests') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/requests') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Requests
                       </Link>
@@ -138,7 +218,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/announcements"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/announcements') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/announcements')}
+                        onMouseOver={(e) =>
+                          !isActive('/announcements') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/announcements') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Announcements
                       </Link>
@@ -146,19 +234,36 @@ const Header = () => {
                     <li>
                       <Link
                         to="/maintenance/report"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/maintenance/report') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/maintenance/report')}
+                        onMouseOver={(e) =>
+                          !isActive('/maintenance/report') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/maintenance/report') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Maintenance
                       </Link>
                     </li>
                   </>
                 )}
+
                 {user.role === 'admin' && (
                   <>
                     <li>
                       <Link
                         to="/admin/bookings"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/bookings') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/admin/bookings')}
+                        onMouseOver={(e) =>
+                          !isActive('/admin/bookings') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/admin/bookings') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Bookings
                       </Link>
@@ -166,7 +271,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/admin/rooms"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/rooms') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/admin/rooms')}
+                        onMouseOver={(e) =>
+                          !isActive('/admin/rooms') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/admin/rooms') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Manage Rooms
                       </Link>
@@ -174,7 +287,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/admin/rooms/import"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/rooms/import') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/admin/rooms/import')}
+                        onMouseOver={(e) =>
+                          !isActive('/admin/rooms/import') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/admin/rooms/import') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Import Rooms
                       </Link>
@@ -182,7 +303,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/admin/maintenance"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/maintenance') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/admin/maintenance')}
+                        onMouseOver={(e) =>
+                          !isActive('/admin/maintenance') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/admin/maintenance') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Maintenance
                       </Link>
@@ -190,7 +319,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/admin/timetables/import"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/timetables/import') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/admin/timetables/import')}
+                        onMouseOver={(e) =>
+                          !isActive('/admin/timetables/import') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/admin/timetables/import') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Import Timetables
                       </Link>
@@ -198,7 +335,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/admin/timetables"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/timetables') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/admin/timetables')}
+                        onMouseOver={(e) =>
+                          !isActive('/admin/timetables') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/admin/timetables') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Manage Timetables
                       </Link>
@@ -206,7 +351,15 @@ const Header = () => {
                     <li>
                       <Link
                         to="/admin/announcements"
-                        className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/admin/announcements') ? 'text-[#3b82f6]' : ''}`}
+                        style={getLinkStyle('/admin/announcements')}
+                        onMouseOver={(e) =>
+                          !isActive('/admin/announcements') &&
+                          (e.target.style.color = brightBlueColor)
+                        }
+                        onMouseOut={(e) =>
+                          !isActive('/admin/announcements') &&
+                          (e.target.style.color = whiteColor)
+                        }
                       >
                         Announcements
                       </Link>
@@ -217,31 +370,53 @@ const Header = () => {
                   <div className="relative">
                     <button
                       onClick={toggleNotifications}
-                      className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
+                      className="px-3 py-1 flex items-center"
+                      style={{
+                        color: whiteColor,
+                        transition: 'color 0.15s',
+                      }}
+                      onMouseOver={(e) =>
+                        (e.target.style.color = brightBlueColor)
+                      }
+                      onMouseOut={(e) => (e.target.style.color = whiteColor)}
                     >
                       Notifications
                       {notifications &&
                         notifications.filter((n) => !n.read).length > 0 && (
-                          <span className="ml-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                          <span
+                            className="ml-2 rounded-full h-5 w-5 flex items-center justify-center text-xs"
+                            style={{
+                              backgroundColor: redColor,
+                              color: whiteColor,
+                            }}
+                          >
                             {notifications.filter((n) => !n.read).length}
                           </span>
                         )}
                     </button>
                     {showNotifications && (
-                      <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
+                      <div
+                        className="absolute right-0 mt-2 w-80 rounded-lg shadow-lg p-4 z-50 max-h-96 overflow-y-auto"
+                        style={{
+                          backgroundColor: whiteColor,
+                          color: blackColor,
+                        }}
+                      >
                         {notifications && notifications.length === 0 ? (
-                          <p className="text-gray-600">No notifications</p>
+                          <p style={{ color: '#4b5563' }}>No notifications</p>
                         ) : (
                           notifications.map((n) => (
                             <div
                               key={n._id}
-                              className={`p-2 border-b last:border-b-0 ${
-                                n.read ? 'opacity-50' : ''
-                              }`}
+                              className={`p-2 border-b last:border-b-0`}
+                              style={{ opacity: n.read ? 0.5 : 1 }}
                             >
                               <p className="text-sm">
                                 {n.message}{' '}
-                                <span className="text-xs text-gray-500">
+                                <span
+                                  style={{ color: '#6b7280' }}
+                                  className="text-xs"
+                                >
                                   (
                                   {n.createdAt
                                     ? new Date(n.createdAt).toLocaleString()
@@ -252,7 +427,17 @@ const Header = () => {
                               {!n.read && (
                                 <button
                                   onClick={() => markAsRead(n._id)}
-                                  className="mt-1 text-[#3b82f6] hover:text-blue-600 text-xs"
+                                  className="mt-1 text-xs"
+                                  style={{
+                                    color: brightBlueColor,
+                                    transition: 'color 0.15s',
+                                  }}
+                                  onMouseOver={(e) =>
+                                    (e.target.style.color = mediumBlueColor)
+                                  }
+                                  onMouseOut={(e) =>
+                                    (e.target.style.color = brightBlueColor)
+                                  }
                                 >
                                   Mark as Read
                                 </button>
@@ -268,7 +453,15 @@ const Header = () => {
                   <div className="relative">
                     <button
                       onClick={toggleProfileDropdown}
-                      className="hover:text-[#3b82f6] px-3 py-1 text-white flex items-center transition duration-150"
+                      className="px-3 py-1 flex items-center"
+                      style={{
+                        color: whiteColor,
+                        transition: 'color 0.15s',
+                      }}
+                      onMouseOver={(e) =>
+                        (e.target.style.color = brightBlueColor)
+                      }
+                      onMouseOut={(e) => (e.target.style.color = whiteColor)}
                     >
                       {user && (
                         <>
@@ -277,8 +470,10 @@ const Header = () => {
                               user.avatar && user.avatar.startsWith('http')
                                 ? user.avatar
                                 : user.avatar
-                                  ? `${import.meta.env.VITE_API_URL}/${user.avatar}`
-                                  : 'https://placehold.co/100x100'
+                                ? `${import.meta.env.VITE_API_URL}/${
+                                    user.avatar
+                                  }`
+                                : 'https://placehold.co/100x100'
                             }
                             alt="Profile avatar"
                             className="w-6 h-6 rounded-full mr-2 object-cover"
@@ -288,17 +483,45 @@ const Header = () => {
                       )}
                     </button>
                     {showProfileDropdown && user && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-lg shadow-lg py-2 z-50">
+                      <div
+                        className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg py-2 z-50"
+                        style={{
+                          backgroundColor: whiteColor,
+                          color: blackColor,
+                        }}
+                      >
                         <Link
                           to="/profile"
-                          className="block px-4 py-2 hover:bg-gray-100"
+                          className="block px-4 py-2"
+                          style={{
+                            transition: 'background-color 0.15s',
+                            backgroundColor: 'transparent',
+                          }}
+                          onMouseOver={(e) =>
+                            (e.target.style.backgroundColor =
+                              veryLightBlueColor)
+                          }
+                          onMouseOut={(e) =>
+                            (e.target.style.backgroundColor = 'transparent')
+                          }
                           onClick={() => setShowProfileDropdown(false)}
                         >
                           Profile Settings
                         </Link>
                         <button
                           onClick={handleLogout}
-                          className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                          className="block w-full text-left px-4 py-2"
+                          style={{
+                            transition: 'background-color 0.15s',
+                            backgroundColor: 'transparent',
+                          }}
+                          onMouseOver={(e) =>
+                            (e.target.style.backgroundColor =
+                              veryLightBlueColor)
+                          }
+                          onMouseOut={(e) =>
+                            (e.target.style.backgroundColor = 'transparent')
+                          }
                         >
                           Logout
                         </button>
@@ -312,7 +535,14 @@ const Header = () => {
                 <li>
                   <Link
                     to="/about"
-                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/about') ? 'text-[#3b82f6]' : ''}`}
+                    style={getLinkStyle('/about')}
+                    onMouseOver={(e) =>
+                      !isActive('/about') &&
+                      (e.target.style.color = brightBlueColor)
+                    }
+                    onMouseOut={(e) =>
+                      !isActive('/about') && (e.target.style.color = whiteColor)
+                    }
                   >
                     About
                   </Link>
@@ -320,7 +550,15 @@ const Header = () => {
                 <li>
                   <Link
                     to="/contact"
-                    className={`text-white no-underline hover:text-[#3b82f6] transition duration-150 font-medium ${isActive('/contact') ? 'text-[#3b82f6]' : ''}`}
+                    style={getLinkStyle('/contact')}
+                    onMouseOver={(e) =>
+                      !isActive('/contact') &&
+                      (e.target.style.color = mediumBlueColor)
+                    } // Darker blue on hover
+                    onMouseOut={(e) =>
+                      !isActive('/contact') &&
+                      (e.target.style.color = blueColor)
+                    } // Back to blue
                   >
                     Contact
                   </Link>
@@ -328,11 +566,20 @@ const Header = () => {
                 <li>
                   <Link
                     to="/login"
-                    className={`text-white px-4 py-1.5 transition duration-150 ${
-                      isActive('/login')
-                        ? 'bg-white text-black'
-                        : 'border border-white hover:bg-white hover:text-[#121824]'
-                    } rounded`}
+                    className="px-4 py-1.5 rounded"
+                    style={{
+                      backgroundColor: isActive('/register')
+                        ? brightBlueColor
+                        : brightBlueColor,
+                      color: whiteColor,
+                      transition: 'background-color 0.15s',
+                    }}
+                    onMouseOver={(e) =>
+                      (e.target.style.backgroundColor = mediumBlueColor)
+                    }
+                    onMouseOut={(e) =>
+                      (e.target.style.backgroundColor = brightBlueColor)
+                    }
                   >
                     Login
                   </Link>
@@ -340,11 +587,20 @@ const Header = () => {
                 <li>
                   <Link
                     to="/register"
-                    className={`px-4 py-1.5 rounded transition duration-150 ${
-                      isActive('/register')
-                        ? 'bg-[#3b82f6] text-white'
-                        : 'bg-[#3b82f6] text-white hover:bg-blue-700'
-                    }`}
+                    className="px-4 py-1.5 rounded"
+                    style={{
+                      backgroundColor: isActive('/register')
+                        ? brightBlueColor
+                        : brightBlueColor,
+                      color: whiteColor,
+                      transition: 'background-color 0.15s',
+                    }}
+                    onMouseOver={(e) =>
+                      (e.target.style.backgroundColor = mediumBlueColor)
+                    }
+                    onMouseOut={(e) =>
+                      (e.target.style.backgroundColor = brightBlueColor)
+                    }
                   >
                     Register
                   </Link>
