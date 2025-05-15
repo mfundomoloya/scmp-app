@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { format } from 'date-fns';
@@ -16,7 +16,11 @@ const ErrorBoundary = ({ children }) => {
     return () => window.removeEventListener('error', errorHandler);
   }, []);
   if (hasError) {
-    return <div className="text-red-300 text-center">Something went wrong. Please try again.</div>;
+    return (
+      <div className="text-red-300 text-center">
+        Something went wrong. Please try again.
+      </div>
+    );
   }
   return children;
 };
@@ -34,27 +38,36 @@ const BookingForm = ({ onBookingCreated }) => {
   });
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
 
   // Fetch rooms and courses for dropdown
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('BookingForm: Fetching data with token:', token ? '[REDACTED]' : null);
+        console.log(
+          'BookingForm: Fetching data with token:',
+          token ? '[REDACTED]' : null
+        );
 
         // Fetch rooms
-        const roomsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/rooms`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const roomsResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/rooms`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setRooms(roomsResponse.data);
         console.log('BookingForm: Fetched rooms:', roomsResponse.data);
 
         // Fetch courses for lecturers
         if (user?.role === 'lecturer') {
-          const coursesResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/courses`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const coursesResponse = await axios.get(
+            `${import.meta.env.VITE_API_URL}/api/courses`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
           setCourses(coursesResponse.data);
           console.log('BookingForm: Fetched courses:', coursesResponse.data);
         }
@@ -73,11 +86,17 @@ const BookingForm = ({ onBookingCreated }) => {
         try {
           setLoading(true);
           const token = localStorage.getItem('token');
-          console.log('BookingForm: Fetching slots with token:', token ? '[REDACTED]' : null);
-          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/bookings/available`, {
-            params: { room: formData.room, date: formData.date },
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          console.log(
+            'BookingForm: Fetching slots with token:',
+            token ? '[REDACTED]' : null
+          );
+          const response = await axios.get(
+            `${import.meta.env.VITE_API_URL}/api/bookings/available`,
+            {
+              params: { room: formData.room, date: formData.date },
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
           setAvailableSlots(response.data);
           console.log('BookingForm: Available slots:', response.data);
         } catch (err) {
@@ -111,7 +130,12 @@ const BookingForm = ({ onBookingCreated }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.room || !formData.date || !formData.startTime || !formData.endTime) {
+    if (
+      !formData.room ||
+      !formData.date ||
+      !formData.startTime ||
+      !formData.endTime
+    ) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -140,7 +164,13 @@ const BookingForm = ({ onBookingCreated }) => {
       toast.success('Booking created successfully');
       console.log('BookingForm: Booking created:', response.data);
       if (onBookingCreated) onBookingCreated();
-      setFormData({ room: '', date: '', startTime: '', endTime: '', courseId: '' });
+      setFormData({
+        room: '',
+        date: '',
+        startTime: '',
+        endTime: '',
+        courseId: '',
+      });
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Failed to create booking');
       console.error('BookingForm: Create booking error:', err);
@@ -176,12 +206,17 @@ const BookingForm = ({ onBookingCreated }) => {
             backdropFilter: 'blur(5px)',
           }}
         >
-          <h2 className="text-2xl font-bold mb-6 text-center">Book Your Room</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center">
+            Book Your Room
+          </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {user?.role === 'lecturer' && (
               <div>
-                <label htmlFor="courseId" className="block text-lg font-medium mb-2">
+                <label
+                  htmlFor="courseId"
+                  className="block text-lg font-medium mb-2"
+                >
                   Select Course
                 </label>
                 <select
@@ -194,7 +229,11 @@ const BookingForm = ({ onBookingCreated }) => {
                 >
                   <option value="">-- Choose a course --</option>
                   {courses.map((course) => (
-                    <option key={course._id} value={course._id} className="bg-gray-800">
+                    <option
+                      key={course._id}
+                      value={course._id}
+                      className="bg-gray-800"
+                    >
                       {course.code} - {course.name}
                     </option>
                   ))}
@@ -216,7 +255,11 @@ const BookingForm = ({ onBookingCreated }) => {
               >
                 <option value="">-- Choose a room --</option>
                 {rooms.map((room) => (
-                  <option key={room._id} value={room.name} className="bg-gray-800">
+                  <option
+                    key={room._id}
+                    value={room.name}
+                    className="bg-gray-800"
+                  >
                     {room.name} (Capacity: {room.capacity})
                   </option>
                 ))}
@@ -240,7 +283,10 @@ const BookingForm = ({ onBookingCreated }) => {
             </div>
 
             <div>
-              <label htmlFor="timeSlot" className="block text-lg font-medium mb-2">
+              <label
+                htmlFor="timeSlot"
+                className="block text-lg font-medium mb-2"
+              >
                 Available Time Slots
               </label>
               <select
@@ -254,7 +300,11 @@ const BookingForm = ({ onBookingCreated }) => {
               >
                 <option value="">-- Select a time slot --</option>
                 {availableSlots[0]?.availableSlots?.map((slot) => (
-                  <option key={slot.startTime} value={slot.startTime} className="bg-gray-800">
+                  <option
+                    key={slot.startTime}
+                    value={slot.startTime}
+                    className="bg-gray-800"
+                  >
                     {formatTimeSlot(slot)}
                   </option>
                 ))}
@@ -297,7 +347,14 @@ const BookingForm = ({ onBookingCreated }) => {
 
             <button
               type="submit"
-              disabled={loading || !formData.room || !formData.date || !formData.startTime || !formData.endTime || (user?.role === 'lecturer' && !formData.courseId)}
+              disabled={
+                loading ||
+                !formData.room ||
+                !formData.date ||
+                !formData.startTime ||
+                !formData.endTime ||
+                (user?.role === 'lecturer' && !formData.courseId)
+              }
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 disabled:bg-gray-600 disabled:opacity-50 mt-6"
             >
               {loading ? (
