@@ -296,7 +296,7 @@ const Footer = () => {
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   style={{ color: mediumBlueColor }}
-                  className="h-5 w-5 mr-2"
+                  className="h-5 w-5 mr-2 text-gray-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

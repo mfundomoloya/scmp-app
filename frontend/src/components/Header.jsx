@@ -47,8 +47,12 @@ const Header = () => {
     setShowNotifications(false);
   };
 
+  const [isNavigating, setIsNavigating] = useState(false);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (isNavigating) return;
+
       if (
         notificationRef.current &&
         !notificationRef.current.contains(event.target)
@@ -63,7 +67,7 @@ const Header = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [isNavigating]);
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -84,7 +88,7 @@ const Header = () => {
 
   const getLinkStyle = (path) => {
     const baseStyle = {
-      color: blueColor, // Use blueColor instead of blackColor
+      color: blueColor,
       textDecoration: 'none',
       transition: 'color 0.15s',
       fontWeight: '500',
@@ -138,12 +142,13 @@ const Header = () => {
                   <Link
                     to="/about"
                     style={getLinkStyle('/about')}
+                    onClick={() => setIsNavigating(true)}
                     onMouseOver={(e) =>
                       !isActive('/about') &&
                       (e.target.style.color = brightBlueColor)
                     }
                     onMouseOut={(e) =>
-                      !isActive('/about') && (e.target.style.color = whiteColor)
+                      !isActive('/about') && (e.target.style.color = blueColor)
                     }
                   >
                     About
@@ -153,13 +158,14 @@ const Header = () => {
                   <Link
                     to="/contact"
                     style={getLinkStyle('/contact')}
+                    onClick={() => setIsNavigating(true)}
                     onMouseOver={(e) =>
                       !isActive('/contact') &&
                       (e.target.style.color = brightBlueColor)
                     }
                     onMouseOut={(e) =>
                       !isActive('/contact') &&
-                      (e.target.style.color = whiteColor)
+                      (e.target.style.color = blueColor)
                     }
                   >
                     Contact
@@ -171,13 +177,14 @@ const Header = () => {
                       <Link
                         to="/timetable"
                         style={getLinkStyle('/timetable')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/timetable') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/timetable') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color = blueColor)
                         }
                       >
                         Timetable
@@ -187,13 +194,14 @@ const Header = () => {
                       <Link
                         to="/bookings"
                         style={getLinkStyle('/bookings')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/bookings') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/bookings') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color = blueColor)
                         }
                       >
                         Bookings
@@ -203,13 +211,14 @@ const Header = () => {
                       <Link
                         to="/requests"
                         style={getLinkStyle('/requests')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/requests') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/requests') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color = blueColor)
                         }
                       >
                         Requests
@@ -219,13 +228,16 @@ const Header = () => {
                       <Link
                         to="/announcements"
                         style={getLinkStyle('/announcements')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/announcements') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/announcements') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color =
+                            !isActive('/about') &&
+                            (e.target.style.color = blueColor))
                         }
                       >
                         Announcements
@@ -235,13 +247,16 @@ const Header = () => {
                       <Link
                         to="/maintenance/report"
                         style={getLinkStyle('/maintenance/report')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/maintenance/report') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/maintenance/report') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color =
+                            !isActive('/about') &&
+                            (e.target.style.color = blueColor))
                         }
                       >
                         Maintenance
@@ -256,13 +271,16 @@ const Header = () => {
                       <Link
                         to="/admin/bookings"
                         style={getLinkStyle('/admin/bookings')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/admin/bookings') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/admin/bookings') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color =
+                            !isActive('/about') &&
+                            (e.target.style.color = blueColor))
                         }
                       >
                         Bookings
@@ -272,13 +290,16 @@ const Header = () => {
                       <Link
                         to="/admin/rooms"
                         style={getLinkStyle('/admin/rooms')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/admin/rooms') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/admin/rooms') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color =
+                            !isActive('/about') &&
+                            (e.target.style.color = blueColor))
                         }
                       >
                         Manage Rooms
@@ -288,13 +309,14 @@ const Header = () => {
                       <Link
                         to="/admin/rooms/import"
                         style={getLinkStyle('/admin/rooms/import')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/admin/rooms/import') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/admin/rooms/import') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color = brightBlueColor)
                         }
                       >
                         Import Rooms
@@ -304,13 +326,14 @@ const Header = () => {
                       <Link
                         to="/admin/maintenance"
                         style={getLinkStyle('/admin/maintenance')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/admin/maintenance') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/admin/maintenance') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color = brightBlueColor)
                         }
                       >
                         Maintenance
@@ -320,13 +343,14 @@ const Header = () => {
                       <Link
                         to="/admin/timetables/import"
                         style={getLinkStyle('/admin/timetables/import')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/admin/timetables/import') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/admin/timetables/import') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color = brightBlueColor)
                         }
                       >
                         Import Timetables
@@ -336,13 +360,14 @@ const Header = () => {
                       <Link
                         to="/admin/timetables"
                         style={getLinkStyle('/admin/timetables')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/admin/timetables') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/admin/timetables') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color = brightBlueColor)
                         }
                       >
                         Manage Timetables
@@ -352,13 +377,14 @@ const Header = () => {
                       <Link
                         to="/admin/announcements"
                         style={getLinkStyle('/admin/announcements')}
+                        onClick={() => setIsNavigating(true)}
                         onMouseOver={(e) =>
                           !isActive('/admin/announcements') &&
                           (e.target.style.color = brightBlueColor)
                         }
                         onMouseOut={(e) =>
                           !isActive('/admin/announcements') &&
-                          (e.target.style.color = whiteColor)
+                          (e.target.style.color = brightBlueColor)
                         }
                       >
                         Announcements
@@ -378,7 +404,11 @@ const Header = () => {
                       onMouseOver={(e) =>
                         (e.target.style.color = brightBlueColor)
                       }
-                      onMouseOut={(e) => (e.target.style.color = whiteColor)}
+                      onMouseOut={(e) =>
+                        (e.target.style.color =
+                          !isActive('/about') &&
+                          (e.target.style.color = blueColor))
+                      }
                     >
                       Notifications
                       {notifications &&
@@ -389,6 +419,7 @@ const Header = () => {
                               backgroundColor: redColor,
                               color: whiteColor,
                             }}
+                            onClick={() => setIsNavigating(true)}
                           >
                             {notifications.filter((n) => !n.read).length}
                           </span>
@@ -401,6 +432,7 @@ const Header = () => {
                           backgroundColor: whiteColor,
                           color: blackColor,
                         }}
+                        onClick={() => setIsNavigating(true)}
                       >
                         {notifications && notifications.length === 0 ? (
                           <p style={{ color: '#4b5563' }}>No notifications</p>
@@ -492,35 +524,36 @@ const Header = () => {
                       >
                         <Link
                           to="/profile"
-                          className="block px-4 py-2"
+                          className="block px-4 py-2 text-black"
                           style={{
                             transition: 'background-color 0.15s',
-                            backgroundColor: 'transparent',
+                            backgroundColor: brightBlueColor,
                           }}
+                          onClick={() => setIsNavigating(true)}
                           onMouseOver={(e) =>
                             (e.target.style.backgroundColor =
                               veryLightBlueColor)
                           }
                           onMouseOut={(e) =>
-                            (e.target.style.backgroundColor = 'transparent')
+                            (e.target.style.backgroundColor = brightBlueColor)
                           }
-                          onClick={() => setShowProfileDropdown(false)}
+                          // onClick={() => setShowProfileDropdown(false)}
                         >
                           Profile Settings
                         </Link>
                         <button
                           onClick={handleLogout}
-                          className="block w-full text-left px-4 py-2"
+                          className="block w-full text-left  text-black px-4 py-2"
                           style={{
                             transition: 'background-color 0.15s',
-                            backgroundColor: 'transparent',
+                            backgroundColor: 'brightBlueColor',
                           }}
+                          //onClick={() => setIsNavigating(true)}
                           onMouseOver={(e) =>
-                            (e.target.style.backgroundColor =
-                              veryLightBlueColor)
+                            (e.target.style.backgroundColor = mediumBlueColor)
                           }
                           onMouseOut={(e) =>
-                            (e.target.style.backgroundColor = 'transparent')
+                            (e.target.style.backgroundColor = brightBlueColor)
                           }
                         >
                           Logout
@@ -538,10 +571,10 @@ const Header = () => {
                     style={getLinkStyle('/about')}
                     onMouseOver={(e) =>
                       !isActive('/about') &&
-                      (e.target.style.color = brightBlueColor)
+                      (e.target.style.color = mediumBlueColor)
                     }
                     onMouseOut={(e) =>
-                      !isActive('/about') && (e.target.style.color = whiteColor)
+                      !isActive('/about') && (e.target.style.color = blueColor)
                     }
                   >
                     About
