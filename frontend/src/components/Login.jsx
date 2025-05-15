@@ -1,14 +1,29 @@
 import { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
+import {
+  FaEye,
+  FaEyeSlash,
+  FaExclamationCircle,
+  FaEnvelope,
+  FaLock,
+} from 'react-icons/fa';
 
 const Login = () => {
+  // Define colors to match footer
+  const blueColor = '#1d4ed8'; // blue-700 equivalent
+  const lightBlueColor = '#dbeafe'; // blue-100 equivalent
+  //const veryLightBlueColor = '#eff6ff'; // blue-50 equivalent
+  const mediumBlueColor = '#2563eb'; // blue-600 equivalent
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const { login, loading } = useContext(AuthContext);
+
+  // Dynamic current year
+  const currentYear = new Date().getFullYear();
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -46,86 +61,155 @@ const Login = () => {
           'url("https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
       }}
     >
       <div className="w-full max-w-md">
-        <div className="relative rounded-xl overflow-hidden shadow-xl">
-          <div className="absolute inset-0 bg-black bg-opacity-60"></div>
-          <div className="relative p-8">
-            <h2 className="text-3xl font-bold text-white mb-6 text-center">
-              Login
-            </h2>
+        <div
+          className="backdrop-blur-sm rounded-xl overflow-hidden shadow-2xl border"
+          style={{
+            borderColor: lightBlueColor,
+            backgroundColor: 'white',
+          }}
+        >
+          <div className="p-8">
+            <div className="mb-8 text-center">
+              <h2
+                className="text-3xl font-bold mb-2"
+                style={{ color: blueColor }}
+              >
+                Welcome Back
+              </h2>
+              <p style={{ color: '#4B5563' }}>
+                Sign in to your Smart Campus account
+              </p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-300 mb-1"
-                >
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-3 rounded-lg bg-gray-700 bg-opacity-50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your email"
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-300 mb-1"
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-3 rounded-lg bg-gray-700 bg-opacity-50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white focus:outline-none"
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium mb-1"
+                    style={{ color: '#4B5563' }}
                   >
-                    {showPassword ? (
-                      <FaEye size={18} />
-                    ) : (
-                      <FaEyeSlash size={18} />
-                    )}
-                  </button>
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaEnvelope
+                        className="h-5 w-5"
+                        style={{ color: mediumBlueColor }}
+                      />
+                    </div>
+                    <input
+                      type="email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent transition duration-200"
+                      style={{
+                        borderColor: '#D1D5DB',
+                        backgroundColor: '#F9FAFB',
+                        focusRing: mediumBlueColor,
+                      }}
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium mb-1"
+                    style={{ color: '#4B5563' }}
+                  >
+                    Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaLock
+                        className="h-5 w-5"
+                        style={{ color: mediumBlueColor }}
+                      />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-10 p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent transition duration-200"
+                      style={{
+                        borderColor: '#D1D5DB',
+                        backgroundColor: '#F9FAFB',
+                        focusRing: mediumBlueColor,
+                      }}
+                      placeholder="Enter your password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 focus:outline-none transition duration-200"
+                      style={{ color: mediumBlueColor }}
+                      onMouseOver={(e) => (e.target.style.color = blueColor)}
+                      onMouseOut={(e) =>
+                        (e.target.style.color = mediumBlueColor)
+                      }
+                    >
+                      {showPassword ? (
+                        <FaEye size={18} />
+                      ) : (
+                        <FaEyeSlash size={18} />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
+
               {error && (
-                <div className="bg-red-500 bg-opacity-25 text-white p-3 rounded-lg flex items-center">
-                  <FaExclamationCircle className="mr-2" /> {error}
+                <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-center border-l-4 border-red-500 animate-pulse">
+                  <FaExclamationCircle className="mr-2 flex-shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
+
+              <div className="flex items-center justify-between text-sm">
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-white hover:text-blue-100"
+                  className="transition duration-300"
+                  style={{ color: mediumBlueColor, transition: 'color 0.3s' }}
+                  onMouseOver={(e) => (e.target.style.color = blueColor)}
+                  onMouseOut={(e) => (e.target.style.color = mediumBlueColor)}
                 >
                   Forgot Password?
                 </Link>
                 <Link
                   to="/register"
-                  className="text-sm text-white hover:text-blue-100"
+                  className="transition duration-300"
+                  style={{ color: mediumBlueColor, transition: 'color 0.3s' }}
+                  onMouseOver={(e) => (e.target.style.color = blueColor)}
+                  onMouseOut={(e) => (e.target.style.color = mediumBlueColor)}
                 >
-                  Don't have an account? Register
+                  Create Account
                 </Link>
               </div>
+
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition duration-200 flex items-center justify-center disabled:bg-blue-400"
+                style={{
+                  backgroundColor: loading ? '#bfdbfe' : '#2563eb',
+                  transition: 'background-color 0.3s',
+                }}
+                onMouseOver={(e) =>
+                  !loading && (e.target.style.backgroundColor = '#1d4ed8')
+                }
+                onMouseOut={(e) =>
+                  !loading && (e.target.style.backgroundColor = '#2563eb')
+                }
+                className="w-full text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center disabled:opacity-70 shadow-lg"
               >
                 {loading ? (
                   <>
@@ -152,10 +236,21 @@ const Login = () => {
                     Logging in...
                   </>
                 ) : (
-                  'Login'
+                  'Sign In'
                 )}
               </button>
             </form>
+
+            <div
+              className="mt-8 pt-6 text-center text-sm"
+              style={{
+                borderTop: `1px solid ${lightBlueColor}`,
+                color: '#6B7280', // text-gray-500 equivalent
+              }}
+            >
+              <p>Smart Campus Services Portal</p>
+              <p>© {currentYear} All Rights Reserved</p>
+            </div>
           </div>
         </div>
       </div>
