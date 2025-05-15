@@ -35,13 +35,14 @@ const updateProfile = async (req, res) => {
     console.log('Update profile: req.body:', JSON.stringify(req.body, null, 2));
     console.log('Update profile: req.file:', req.file ? req.file : 'No file uploaded');
 
-    const { courseCodes, emailNotifications, displayName, firstName, lastName } = req.body;
+    // Extract fields from req.body
+    let { courseCodes, emailNotifications, displayName, firstName, lastName } = req.body || {};
 
     // Handle courseCodes
     let parsedCourseCodes = courseCodes;
-    if (typeof courseCodes === 'string') {
+    if (courseCodes) {
       try {
-        parsedCourseCodes = JSON.parse(courseCodes);
+        parsedCourseCodes = typeof courseCodes === 'string' ? JSON.parse(courseCodes) : courseCodes;
       } catch (err) {
         console.error('Update profile: Invalid courseCodes JSON');
         return res.status(400).json({ msg: 'Invalid courseCodes format' });
@@ -140,16 +141,6 @@ const updateProfile = async (req, res) => {
 
     // Handle avatar upload
     if (req.file) {
-      const allowedTypes = ['image/jpeg', 'image/png'];
-      if (!allowedTypes.includes(req.file.mimetype)) {
-        console.error('Update profile: Invalid file type');
-        return res.status(400).json({ msg: 'Only JPEG and PNG images are allowed' });
-      }
-      if (req.file.size > 5 * 1024 * 1024) {
-        console.error('Update profile: File too large');
-        return res.status(400).json({ msg: 'Image must be less than 5MB' });
-      }
-
       // Delete old avatar if exists and not the placeholder
       if (user.avatar && user.avatar !== 'https://placehold.co/100x100') {
         const oldPath = path.join(__dirname, '..', 'public', user.avatar);
@@ -166,7 +157,7 @@ const updateProfile = async (req, res) => {
     res.json(user);
   } catch (err) {
     console.error('Error updating profile:', err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: err.message || 'Server error' });
   }
 };
 
