@@ -1,6 +1,14 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
+  // Define colors explicitly
+  const blueColor = '#1d4ed8'; // blue-700 equivalent
+  const lightBlueColor = '#dbeafe'; // blue-100 equivalent
+  const veryLightBlueColor = '#eff6ff'; // blue-50 equivalent
+  const mediumBlueColor = '#2563eb'; // blue-600 equivalent
+
+  // Dynamic current year
   const currentYear = new Date().getFullYear();
 
   return (
@@ -10,47 +18,88 @@ const Footer = () => {
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: 'url(/images/books-background.jpg)' }}
       >
-        <div className="absolute inset-0 bg-black bg-opacity-85"></div>
+        <div className="absolute inset-0 bg-white bg-opacity-90"></div>
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Campus Information */}
-          <div>
-            <h3 className="text-xl font-semibold mb-4 text-white">
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          {/* Column 1: About */}
+          <div className="space-y-4">
+            <h2
+              style={{
+                color: blueColor,
+                borderBottom: `1px solid ${lightBlueColor}`,
+              }}
+              className="text-2xl font-bold pb-2 mb-4"
+            >
               Smart Campus Portal
-            </h3>
-            <p className="text-gray-300 mb-4">
+            </h2>
+            <p className="text-gray-700 mb-4">
               Empowering education through technology. Manage your campus
               services efficiently.
             </p>
-            <p className="text-gray-300">
-              <strong>Contact:</strong> info@smartcampus.edu
-            </p>
+            <div className="flex items-center space-x-2 text-gray-700">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ color: mediumBlueColor }}
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+              <a
+                href="mailto:info@smartcampus.edu"
+                style={{ transition: 'color 0.3s' }}
+                onMouseOver={(e) => (e.target.style.color = blueColor)}
+                onMouseOut={(e) => (e.target.style.color = '')}
+              >
+                info@smartcampus.edu
+              </a>
+            </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-xl font-semibold mb-4 text-white">
+          {/* Column 2: Quick Links */}
+          <div className="space-y-4">
+            <h2
+              style={{
+                color: blueColor,
+                borderBottom: `1px solid ${lightBlueColor}`,
+              }}
+              className="text-2xl font-bold pb-2 mb-4"
+            >
               Quick Links
-            </h3>
-            <ul className="space-y-2">
+            </h2>
+            <ul className="space-y-3">
               <li>
                 <Link
                   to="/about"
-                  className="text-gray-300 hover:text-white transition duration-150 flex items-center"
+                  className="inline-flex items-center text-gray-700"
+                  style={{ transition: 'color 0.3s' }}
+                  onMouseOver={(e) => (e.target.style.color = blueColor)}
+                  onMouseOut={(e) => (e.target.style.color = '')}
                 >
                   <svg
-                    className="w-4 h-4 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ color: mediumBlueColor }}
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
                     <path
-                      fillRule="evenodd"
-                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    ></path>
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                   About Us
                 </Link>
@@ -58,18 +107,25 @@ const Footer = () => {
               <li>
                 <Link
                   to="/contact"
-                  className="text-gray-300 hover:text-white transition duration-150 flex items-center"
+                  className="inline-flex items-center text-gray-700"
+                  style={{ transition: 'color 0.3s' }}
+                  onMouseOver={(e) => (e.target.style.color = blueColor)}
+                  onMouseOut={(e) => (e.target.style.color = '')}
                 >
                   <svg
-                    className="w-4 h-4 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ color: mediumBlueColor }}
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
                     <path
-                      fillRule="evenodd"
-                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    ></path>
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                   Contact Us
                 </Link>
@@ -77,18 +133,25 @@ const Footer = () => {
               <li>
                 <Link
                   to="/privacy"
-                  className="text-gray-300 hover:text-white transition duration-150 flex items-center"
+                  className="inline-flex items-center text-gray-700"
+                  style={{ transition: 'color 0.3s' }}
+                  onMouseOver={(e) => (e.target.style.color = blueColor)}
+                  onMouseOut={(e) => (e.target.style.color = '')}
                 >
                   <svg
-                    className="w-4 h-4 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ color: mediumBlueColor }}
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
                     <path
-                      fillRule="evenodd"
-                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    ></path>
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                   Privacy Policy
                 </Link>
@@ -96,29 +159,62 @@ const Footer = () => {
               <li>
                 <Link
                   to="/terms"
-                  className="text-gray-300 hover:text-white transition duration-150 flex items-center"
+                  className="inline-flex items-center text-gray-700"
+                  style={{ transition: 'color 0.3s' }}
+                  onMouseOver={(e) => (e.target.style.color = blueColor)}
+                  onMouseOut={(e) => (e.target.style.color = '')}
                 >
                   <svg
-                    className="w-4 h-4 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  ></svg>
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ color: mediumBlueColor }}
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                  Terms of Service
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Connect With Us */}
-          <div>
-            <h3 className="text-xl font-semibold mb-4 text-white">
+          {/* Column 3: Connect */}
+          <div className="space-y-4">
+            <h2
+              style={{
+                color: blueColor,
+                borderBottom: `1px solid ${lightBlueColor}`,
+              }}
+              className="text-2xl font-bold pb-2 mb-4"
+            >
               Connect With Us
-            </h3>
-            <div className="flex space-x-4 mb-4">
-              {/* Social Media Icons */}
+            </h2>
+
+            {/* Social Icons */}
+            <div className="flex space-x-4">
               <a
                 href="#"
-                className="bg-white bg-opacity-10 p-2 rounded-full text-white hover:bg-opacity-20 transition duration-150"
+                style={{
+                  backgroundColor: lightBlueColor,
+                  color: blueColor,
+                  borderRadius: '9999px',
+                  padding: '0.5rem',
+                }}
+                onMouseOver={(e) =>
+                  (e.target.style.backgroundColor = '#bfdbfe')
+                }
+                onMouseOut={(e) =>
+                  (e.target.style.backgroundColor = lightBlueColor)
+                }
               >
+                {/* Facebook icon */}
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -134,8 +230,20 @@ const Footer = () => {
               </a>
               <a
                 href="#"
-                className="bg-white bg-opacity-10 p-2 rounded-full text-white hover:bg-opacity-20 transition duration-150"
+                style={{
+                  backgroundColor: lightBlueColor,
+                  color: blueColor,
+                  borderRadius: '9999px',
+                  padding: '0.5rem',
+                }}
+                onMouseOver={(e) =>
+                  (e.target.style.backgroundColor = '#bfdbfe')
+                }
+                onMouseOut={(e) =>
+                  (e.target.style.backgroundColor = lightBlueColor)
+                }
               >
+                {/* Twitter icon */}
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -147,8 +255,20 @@ const Footer = () => {
               </a>
               <a
                 href="#"
-                className="bg-white bg-opacity-10 p-2 rounded-full text-white hover:bg-opacity-20 transition duration-150"
+                style={{
+                  backgroundColor: lightBlueColor,
+                  color: blueColor,
+                  borderRadius: '9999px',
+                  padding: '0.5rem',
+                }}
+                onMouseOver={(e) =>
+                  (e.target.style.backgroundColor = '#bfdbfe')
+                }
+                onMouseOut={(e) =>
+                  (e.target.style.backgroundColor = lightBlueColor)
+                }
               >
+                {/* Instagram icon */}
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -163,22 +283,64 @@ const Footer = () => {
                 </svg>
               </a>
             </div>
-            <p className="text-gray-300">
-              <strong>Hours:</strong> Monday-Friday: 8:00 AM - 5:00 PM
-            </p>
+
+            {/* Hours */}
+            <div className="mt-4">
+              <h3
+                style={{ color: blueColor }}
+                className="text-lg font-semibold"
+              >
+                Hours
+              </h3>
+              <p className="text-gray-700 flex items-center mt-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ color: mediumBlueColor }}
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Monday-Friday: 8:00 AM - 5:00 PM
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Divider Line with Gradient */}
-        <div className="mt-8 pt-8 border-t border-gray-700 border-opacity-50 text-center">
-          <div className="flex flex-col items-center">
-            <p className="text-gray-300 text-sm">
+      {/* Divider and Copyright Bar */}
+      <div
+        style={{ borderTop: `1px solid ${lightBlueColor}`, marginTop: '2rem' }}
+        className="relative z-10"
+      >
+        <div style={{ backgroundColor: veryLightBlueColor }} className="py-4">
+          <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center">
+            <div className="text-sm text-gray-600">
               © {currentYear} Smart Campus Services Portal. All rights reserved.
-            </p>
-            <p className="text-gray-400 text-xs mt-2">
-              Designed with <span className="text-red-500"> ♥ </span> for
-              students and faculty
-            </p>
+            </div>
+            <div className="mt-2 md:mt-0 text-sm text-gray-600 flex items-center">
+              Designed with
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mx-1 text-red-500"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              for students and faculty
+            </div>
           </div>
         </div>
       </div>
