@@ -21,6 +21,7 @@ const Login = () => {
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const { login, loading } = useContext(AuthContext);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Dynamic current year
   const currentYear = new Date().getFullYear();
@@ -166,6 +167,24 @@ const Login = () => {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Add this after the password input and before the error message */}
+              <div className="flex items-center mt-2">
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm"
+                  style={{ color: '#4B5563' }}
+                >
+                  Remember me
+                </label>
               </div>
 
               {error && (

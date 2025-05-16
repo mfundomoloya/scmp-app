@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import announcementIcon from '../assets/announcement.png';
+import backgroundImage from '../assets/AnnouncementB.jpeg';
 
 const Announcement = () => {
   // Define colors explicitly to match Footer
@@ -125,7 +126,10 @@ const Announcement = () => {
   return (
     <div className="relative py-6">
       {/* Background with Overlay */}
-      <div className="absolute inset-0 bg-cover bg-center z-0">
+      <div
+        className="absolute inset-0 bg-cover bg-center z-0"
+        style={{ backgroundImage: `url(${backgroundImage})` }}
+      >
         <div className="absolute inset-0 bg-white bg-opacity-90"></div>
       </div>
 
