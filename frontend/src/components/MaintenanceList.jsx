@@ -1,199 +1,346 @@
-import { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
+import backgroundImage from '../assets/Maintenance.jpg';
 
 const MaintenanceReportList = () => {
+  // Define colors explicitly to match Announcement/Timetable component
+  const blueColor = '#1d4ed8'; // blue-700 equivalent
+  const lightBlueColor = '#dbeafe'; // blue-100 equivalent
+  const veryLightBlueColor = '#eff6ff'; // blue-50 equivalent
+  const mediumBlueColor = '#2563eb'; // blue-600 equivalent
+
   const { user } = useContext(AuthContext);
-  const [reports, setReports] = useState([]);
+  const [maintenanceReports, setMaintenanceReports] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  console.log('MaintenanceReportList: Rendering for user:', user?.id, 'role:', user?.role);
-
-  const fetchReports = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      console.log('MaintenanceReportList: Fetching reports with token:', token ? '[REDACTED]' : null);
-      console.log('MaintenanceReportList: API URL:', import.meta.env.VITE_API_URL);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/maintenance`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log('MaintenanceReportList: Fetch response:', response.data);
-
-      // Filter reports for students/lecturers
-      const userReports = user.role !== 'admin'
-        ? response.data.filter((report) => report.userId?._id === user.id || report.userId === user.id)
-        : response.data;
-
-      console.log('MaintenanceReportList: User reports:', userReports);
-      setReports(userReports);
-      setError(null);
-    } catch (err) {
-      console.error('MaintenanceReportList: Error fetching reports:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-      });
-      setError(err.response?.data?.msg || 'Failed to fetch maintenance reports.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    const fetchMaintenanceReports = async () => {
+      setIsLoading(true);
+      try {
+        console.log('Fetching maintenance reports for user:', user?.email);
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/maintenance/reports`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        console.log('Maintenance reports response:', response.data);
+        setMaintenanceReports(
+          Array.isArray(response.data) ? response.data : []
+        );
+      } catch (err) {
+        console.error('Fetch maintenance reports error:', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
+        setError(
+          err.response?.data?.msg || 'Failed to fetch maintenance reports'
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (user) {
-      console.log('MaintenanceReportList: Triggering fetchReports for user:', user.id);
-      fetchReports();
+      fetchMaintenanceReports();
     } else {
-      console.log('MaintenanceReportList: No user, skipping fetchReports');
-      setError('Please log in to view maintenance reports.');
+      setIsLoading(false);
+      setError('Please log in to view maintenance reports');
     }
   }, [user]);
 
-  const formatDate = (dateString) => {
-    const d = new Date(dateString);
-    if (isNaN(d)) return 'Invalid Date';
-    return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1)
-      .toString()
-      .padStart(2, '0')}-${d.getFullYear()}`;
+  const handleReportNewIssue = () => {
+    window.location.href = '/maintenance/new';
   };
 
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'resolved':
-        return 'bg-green-900 text-green-200';
-      case 'open':
-        return 'bg-yellow-900 text-yellow-200';
-      case 'in-progress':
-        return 'bg-green-900 text-green-200';
-      default:
-        return 'bg-gray-700 text-white';
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="relative py-6">
+        <div
+          className="absolute inset-0 bg-cover bg-center z-0"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        >
+          <div className="absolute inset-0 bg-white bg-opacity-90"></div>
+        </div>
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-5xl mx-auto">
+            <div className="flex items-center justify-center mb-6">
+              <div className="mr-4 w-10 h-10 flex-shrink-0">
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-8 w-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke={blueColor}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <h2
+                className="text-2xl font-bold pb-2"
+                style={{
+                  color: blueColor,
+                  borderBottom: `1px solid ${lightBlueColor}`,
+                }}
+              >
+                My Maintenance Reports
+              </h2>
+            </div>
+            <div className="flex justify-center items-center p-8">
+              <div
+                className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2"
+                style={{ borderColor: mediumBlueColor }}
+              ></div>
+              <span className="ml-3 text-xl text-gray-700">
+                Loading maintenance reports...
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  if (!user) {
-    return <div className="text-white text-center mt-8">Please log in to view maintenance reports.</div>;
+  if (error) {
+    return (
+      <div className="relative py-6">
+        <div
+          className="absolute inset-0 bg-cover bg-center z-0"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        >
+          <div className="absolute inset-0 bg-white bg-opacity-90"></div>
+        </div>
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-5xl mx-auto">
+            <div className="flex items-center justify-center mb-6">
+              <div className="mr-4 w-10 h-10 flex-shrink-0">
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-8 w-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke={blueColor}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <h2
+                className="text-2xl font-bold pb-2"
+                style={{
+                  color: blueColor,
+                  borderBottom: `1px solid ${lightBlueColor}`,
+                }}
+              >
+                My Maintenance Reports
+              </h2>
+            </div>
+            <div
+              className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6"
+              role="alert"
+            >
+              <p>{error}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-gray-900 bg-opacity-80 text-white rounded-lg shadow-xl p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold border-b border-gray-700 pb-4">
-            My Maintenance Reports
-          </h2>
-          <Link
-            to="/maintenance/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-300"
-          >
-            Report New Issue
-          </Link>
+    <div className="relative py-6">
+      {/* Background with Overlay */}
+      <div
+        className="absolute inset-0 bg-cover bg-center z-0"
+        style={{ backgroundImage: `url(${backgroundImage})` }}
+      >
+        <div className="absolute inset-0 bg-white bg-opacity-90"></div>
+      </div>
+
+      {/* Content */}
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-5xl mx-auto">
+          {/* Header Section with Title and Button */}
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <div className="flex items-center mb-4 sm:mb-0">
+              <div className="mr-4 w-10 h-10 flex-shrink-0">
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-8 w-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke={blueColor}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <h2
+                className="text-2xl font-bold pb-2"
+                style={{
+                  color: blueColor,
+                  borderBottom: `1px solid ${lightBlueColor}`,
+                }}
+              >
+                My Maintenance Reports
+              </h2>
+            </div>
+            <button
+              onClick={handleReportNewIssue}
+              className="px-4 py-2 text-white font-medium rounded-lg transition-colors duration-200"
+              style={{ backgroundColor: mediumBlueColor }}
+              onMouseOver={(e) => (e.target.style.backgroundColor = blueColor)}
+              onMouseOut={(e) =>
+                (e.target.style.backgroundColor = mediumBlueColor)
+              }
+            >
+              Report New Issue
+            </button>
+          </div>
+
+          {/* Reports Table */}
+          {maintenanceReports.length === 0 ? (
+            <div
+              className="text-center text-gray-500 py-8 border rounded-lg"
+              style={{ borderColor: lightBlueColor }}
+            >
+              <p className="text-lg">
+                You haven't submitted any maintenance reports yet.
+              </p>
+            </div>
+          ) : (
+            <div
+              className="overflow-x-auto rounded-lg shadow-md"
+              style={{ border: `1px solid ${lightBlueColor}` }}
+            >
+              <table className="min-w-full">
+                <thead>
+                  <tr style={{ backgroundColor: veryLightBlueColor }}>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                      ROOM
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                      DESCRIPTION
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                      STATUS
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                      REPORTED ON
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  className="divide-y"
+                  style={{ divideColor: lightBlueColor }}
+                >
+                  {maintenanceReports.map((report) => (
+                    <tr
+                      key={report._id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 text-gray-700">
+                        {report.roomName || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">
+                        {report.description}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 text-xs rounded-full ${
+                            report.status === 'completed'
+                              ? 'bg-green-500 text-white'
+                              : report.status === 'in-progress'
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-amber-500 text-white'
+                          }`}
+                        >
+                          {report.status === 'completed'
+                            ? 'Completed'
+                            : report.status === 'in-progress'
+                            ? 'In Progress'
+                            : 'Open'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">
+                        {new Date(report.createdAt).toLocaleDateString(
+                          'en-ZA',
+                          {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          }
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
-        {error && (
-          <div className="bg-red-900 text-white p-4 rounded-md mb-6 flex justify-between items-center">
-            <span>{error}</span>
-            <div>
-              <button
-                onClick={fetchReports}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md mr-2"
-              >
-                Retry
-              </button>
-              <button
-                onClick={() => {
-                  localStorage.removeItem('token');
-                  window.location.href = '/login';
-                }}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex justify-center items-center p-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            <span className="ml-3 text-xl">Loading reports...</span>
-          </div>
-        ) : reports.length === 0 && !error ? (
-          <div className="bg-gray-800 bg-opacity-70 rounded-lg p-8 text-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-16 w-16 mx-auto text-gray-400 mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <p className="text-xl">No maintenance reports found.</p>
-            <p className="text-gray-400 mt-2">
-              You have not reported any maintenance issues yet. Click "Report New Issue" to start.
-            </p>
-            <p className="text-yellow-300 mt-2">
-              Debug: User ID: {user.id}, Role: {user.role}.
+        {/* Divider - Similar to Timetable component */}
+        <div
+          style={{
+            borderTop: `1px solid ${lightBlueColor}`,
+            marginTop: '2rem',
+          }}
+          className="relative z-10 max-w-5xl mx-auto"
+        >
+          <div
+            style={{ backgroundColor: veryLightBlueColor }}
+            className="py-3 px-8 rounded-b-lg text-center"
+          >
+            <p className="text-sm text-gray-600">
+              View and report maintenance issues to keep our campus facilities
+              in good condition.
             </p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-black bg-opacity-50 rounded-lg">
-              <thead>
-                <tr className="bg-gray-900 text-left">
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                    Room
-                  </th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                    Reported On
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800">
-                {reports.map((report) => (
-                  <tr
-                    key={report._id}
-                    className="hover:bg-gray-800 transition-colors duration-200"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {report.roomId?.name || 'Unknown Room'}
-                    </td>
-                    <td className="px-6 py-4">
-                      {report.description.length > 100
-                        ? `${report.description.substring(0, 100)}...`
-                        : report.description}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                           className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(report.status)}`}
-                      >
-                        {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {formatDate(report.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
