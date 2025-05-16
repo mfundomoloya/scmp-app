@@ -11,7 +11,7 @@ const Header = () => {
   const brightBlueColor = '#3b82f6'; // blue-500 equivalent
   const blackColor = '#000000';
   const whiteColor = '#ffffff';
-  const redColor = '#ef4444'; // red-500 equivalent
+  const yellowColor = '#ffde21';
 
   const { user, logout, loading } = useContext(AuthContext);
   const { notifications, markAsRead } = useContext(NotificationContext);
@@ -50,6 +50,7 @@ const Header = () => {
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
+    setIsNavigating(false);
     const handleClickOutside = (event) => {
       if (isNavigating) return;
 
@@ -67,7 +68,7 @@ const Header = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isNavigating]);
+  }, [location]);
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -398,7 +399,7 @@ const Header = () => {
                       onClick={toggleNotifications}
                       className="px-3 py-1 flex items-center"
                       style={{
-                        color: whiteColor,
+                        color: blueColor,
                         transition: 'color 0.15s',
                       }}
                       onMouseOver={(e) =>
@@ -416,7 +417,7 @@ const Header = () => {
                           <span
                             className="ml-2 rounded-full h-5 w-5 flex items-center justify-center text-xs"
                             style={{
-                              backgroundColor: redColor,
+                              backgroundColor: yellowColor,
                               color: whiteColor,
                             }}
                             onClick={() => setIsNavigating(true)}
@@ -432,7 +433,7 @@ const Header = () => {
                           backgroundColor: whiteColor,
                           color: blackColor,
                         }}
-                        onClick={() => setIsNavigating(true)}
+                        //onClick={() => setIsNavigating(true)}
                       >
                         {notifications && notifications.length === 0 ? (
                           <p style={{ color: '#4b5563' }}>No notifications</p>
@@ -458,7 +459,10 @@ const Header = () => {
                               </p>
                               {!n.read && (
                                 <button
-                                  onClick={() => markAsRead(n._id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsRead(n._id);
+                                  }}
                                   className="mt-1 text-xs"
                                   style={{
                                     color: brightBlueColor,
