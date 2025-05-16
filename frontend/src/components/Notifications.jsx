@@ -1,230 +1,203 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { NotificationContext } from '../context/NotificationContext';
-import { AnimatePresence } from 'framer-motion';
 
 const Notifications = () => {
-  const { notifications, markAsRead } = useContext(NotificationContext);
-  const [filter, setFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  // Define colors explicitly as in the Footer component
+  const blueColor = '#1d4ed8'; // blue-700 equivalent
+  const lightBlueColor = '#dbeafe'; // blue-100 equivalent
+  const veryLightBlueColor = '#eff6ff'; // blue-50 equivalent
+  const mediumBlueColor = '#2563eb'; // blue-600 equivalent
+  const redColor = '#dc2626'; // red-600 equivalent
+  const greenColor = '#16a34a'; // green-600 equivalent
+  const amberColor = '#f59e0b'; // amber-500 equivalent
+  const grayColor = '#6b7280'; // gray-500 equivalent
+  const darkGrayColor = '#374151'; // gray-700 equivalent
 
-  const filteredNotifications = notifications
-    .filter((notification) => {
-      if (filter === 'unread') return !notification.read;
-      if (filter === 'read') return notification.read;
-      return true; // 'all' filter
-    })
-    .filter((notification) =>
-      notification.message.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const { notifications, fetchNotifications } = useContext(NotificationContext);
 
-  // Group notifications by date
-  const groupedNotifications = filteredNotifications.reduce(
-    (groups, notification) => {
-      const date = new Date(notification.createdAt).toLocaleDateString();
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(notification);
-      return groups;
-    },
-    {}
-  );
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
 
-  const markAllAsRead = () => {
-    filteredNotifications
-      .filter((n) => !n.read)
-      .forEach((n) => markAsRead(n._id));
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/notifications/${notificationId}/read`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
-  return (
-    <div className="min-h-screen relative">
-      {/* Background Image with Overlay */}
+  if (!notifications || notifications.length === 0) {
+    return (
       <div
-        className="absolute inset-0 bg-cover bg-center z-0"
-        style={{ backgroundImage: 'url(/images/notifications-bg.jpg)' }}
+        style={{
+          padding: '1rem',
+          backgroundColor: veryLightBlueColor,
+          borderRadius: '0.5rem',
+          textAlign: 'center',
+          color: grayColor,
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        }}
       >
-        <div className="absolute inset-0 bg-black bg-opacity-75"></div>
+        No notifications
       </div>
+    );
+  }
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-16 relative z-10">
-        <div className="max-w-4xl mx-auto bg-white bg-opacity-95 p-8 rounded-lg shadow-xl">
-          <div className="flex justify-between items-center mb-6 border-b pb-4">
-            <h1 className="text-3xl font-bold text-black">Notifications</h1>
-            <div className="text-sm font-medium text-gray-600">
-              {filteredNotifications.filter((n) => !n.read).length} unread
-            </div>
-          </div>
+  return (
+    <div>
+      <h2
+        style={{
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          color: blueColor,
+          marginBottom: '1rem',
+          textAlign: 'center',
+          paddingBottom: '0.5rem',
+          borderBottom: `2px solid ${lightBlueColor}`,
+        }}
+      >
+        Modern Styled Notifications
+      </h2>
 
-          {/* Filters and Search */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  filter === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setFilter('unread')}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  filter === 'unread'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Unread
-              </button>
-              <button
-                onClick={() => setFilter('read')}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  filter === 'read'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Read
-              </button>
-            </div>
+      <div
+        style={{
+          maxWidth: '42rem',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+        }}
+      >
+        {notifications.map((notification) => {
+          // Determine notification styling based on status
+          let textColor = mediumBlueColor;
+          let borderColor = mediumBlueColor;
+          let statusText = '';
 
-            <div className="flex w-full md:w-auto space-x-2">
-              <input
-                type="text"
-                placeholder="Search notifications..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64"
-              />
+          if (notification.status === 'cancelled') {
+            textColor = redColor;
+            borderColor = redColor;
+            statusText = 'cancelled';
+          } else if (notification.status === 'updated') {
+            textColor = greenColor;
+            borderColor = greenColor;
+            statusText = 'updated to confirmed';
+          } else if (notification.status === 'scheduled') {
+            textColor = amberColor;
+            borderColor = amberColor;
+            statusText = 'scheduled';
+          }
 
-              {filteredNotifications.some((n) => !n.read) && (
-                <button
-                  onClick={markAllAsRead}
-                  className="whitespace-nowrap px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-                >
-                  Mark all read
-                </button>
-              )}
-            </div>
-          </div>
+          // Extract message parts - this assumes a specific format in the notifications
+          const messageContent = notification.message || '';
 
-          {/* Notifications List */}
-          <div className="space-y-6">
-            {Object.keys(groupedNotifications).length > 0 ? (
-              Object.entries(groupedNotifications)
-                .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
-                .map(([date, dayNotifications]) => (
-                  <div key={date} className="space-y-2">
-                    <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                      {new Date(date).toLocaleDateString(undefined, {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </h2>
+          // Parse message content - this would be more robust with actual data structure
+          let booking = {
+            type: messageContent.includes('Maintenance')
+              ? 'Maintenance'
+              : 'Your booking',
+            room: messageContent.includes('Room A')
+              ? 'Seminar Room A'
+              : 'Seminar Room B',
+            date: messageContent.match(/\d{2}-\d{2}-\d{4}/)?.[0] || '',
+            startTime: messageContent.match(/from (\d{2}:\d{2})/)?.[1] || '',
+            endTime: messageContent.match(/to (\d{2}:\d{2})/)?.[1] || '',
+          };
 
-                    <AnimatePresence>
-                      {dayNotifications.map((notification) => (
-                        <motion.div
-                          key={notification._id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.2 }}
-                          className={`p-4 border-l-4 rounded-md shadow-sm flex justify-between items-start ${
-                            notification.read
-                              ? 'bg-gray-50 border-gray-300'
-                              : 'bg-blue-50 border-blue-500'
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <p
-                              className={`${
-                                notification.read
-                                  ? 'text-gray-600'
-                                  : 'text-gray-800 font-medium'
-                              }`}
-                            >
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {new Date(
-                                notification.createdAt
-                              ).toLocaleTimeString()}
-                            </p>
-                          </div>
-
-                          {!notification.read && (
-                            <button
-                              onClick={() => markAsRead(notification._id)}
-                              className="ml-4 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                            >
-                              Mark as read
-                            </button>
-                          )}
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
+          return (
+            <div
+              key={notification.id}
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '0.5rem',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                display: 'flex',
+                overflow: 'hidden',
+                borderLeft: `4px solid ${borderColor}`,
+              }}
+            >
+              <div style={{ width: '0.25rem', flexShrink: 0 }}></div>
+              <div style={{ padding: '1rem', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                  <div style={{ flexShrink: 0, marginRight: '0.75rem' }}>
+                    <svg
+                      style={{
+                        width: '1.25rem',
+                        height: '1.25rem',
+                        color: borderColor,
+                      }}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      ></path>
+                    </svg>
                   </div>
-                ))
-            ) : (
-              <div className="text-center py-16">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-16 w-16 text-gray-400 mx-auto mb-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                <h3 className="text-lg font-medium text-gray-600 mb-1">
-                  No notifications found
-                </h3>
-                <p className="text-gray-500">
-                  {searchTerm
-                    ? 'Try adjusting your search or filter criteria.'
-                    : filter !== 'all'
-                    ? `You don't have any ${filter} notifications.`
-                    : 'You have no notifications at this time.'}
-                </p>
+                  <div style={{ flexGrow: 1 }}>
+                    <p style={{ color: darkGrayColor }}>
+                      {booking.type} for {booking.room} on {booking.date} from{' '}
+                      {booking.startTime} to {booking.endTime} has been{' '}
+                      <span style={{ color: textColor }}>{statusText}</span>.
+                    </p>
+                    <p
+                      style={{
+                        color: grayColor,
+                        fontSize: '0.875rem',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      {notification.timestamp}
+                    </p>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Pagination placeholder - for future implementation */}
-          {filteredNotifications.length > 10 && (
-            <div className="mt-8 flex justify-center">
-              <nav className="flex items-center space-x-2">
-                <button className="px-3 py-1 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50">
-                  Previous
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  paddingRight: '1rem',
+                }}
+              >
+                <button
+                  onClick={() => handleMarkAsRead(notification.id)}
+                  style={{
+                    color: mediumBlueColor,
+                    transition: 'color 0.3s',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  onMouseOver={(e) => (e.target.style.color = blueColor)}
+                  onMouseOut={(e) => (e.target.style.color = mediumBlueColor)}
+                >
+                  Mark as Read
                 </button>
-                <button className="px-3 py-1 rounded-md bg-blue-600 text-white">
-                  1
-                </button>
-                <button className="px-3 py-1 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50">
-                  2
-                </button>
-                <button className="px-3 py-1 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50">
-                  3
-                </button>
-                <span className="px-2 text-gray-500">...</span>
-                <button className="px-3 py-1 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50">
-                  Next
-                </button>
-              </nav>
+              </div>
             </div>
-          )}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

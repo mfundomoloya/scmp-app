@@ -1,447 +1,358 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+//import { format, parseISO } from 'date-fns';
 
 const BookingList = ({ refresh }) => {
-  // Define colors explicitly - matching the footer colors
-  const blueColor = '#1d4ed8'; // blue-700 equivalent
-  const lightBlueColor = '#dbeafe'; // blue-100 equivalent
-  const veryLightBlueColor = '#eff6ff'; // blue-50 equivalent
-  const dangerColor = '#ef4444'; // red-500 equivalent
-  const dangerHoverColor = '#dc2626'; // red-600 equivalent
-
-  const { user } = useContext(AuthContext);
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
-  const [currentView, setCurrentView] = useState('upcoming');
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [sortConfig, setSortConfig] = useState({
-    key: 'date',
-    direction: 'asc',
+  const [filteredBookings, setFilteredBookings] = useState([]);
+  const [filters, setFilters] = useState({
+    status: '',
+    room: '',
+    startDate: '',
+    endDate: '',
   });
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [error, setError] = useState(null);
+  const { user } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(null);
+  const [modalAction, setModalAction] = useState(null);
 
-  useEffect(() => {
-    fetchBookings();
-  }, [refresh, currentView, user.id]);
+  console.log(
+    'BookingList: Rendering for user:',
+    user?.id,
+    'role:',
+    user?.role
+  );
+
+  // Format date as dd-mm-yyyy
+  const formatDate = (dateString) => {
+    const d = new Date(dateString);
+    if (isNaN(d)) return 'Invalid Date';
+    return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}-${d.getFullYear()}`;
+  };
+
+  // Format time as HH:mm (24-hour clock, South African locale)
+  const formatTime = (timeString) => {
+    const t = new Date(timeString);
+    if (isNaN(t)) return 'Invalid Time';
+    return t.toLocaleTimeString('en-ZA', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
 
   const fetchBookings = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      console.log(
+        'BookingList: Fetching bookings with token:',
+        token ? '[REDACTED]' : null
+      );
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/bookings`,
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          params: {
-            filter: currentView,
-            userId: user.role === 'admin' ? null : user.id,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setBookings(response.data);
+      console.log('BookingList: Fetch response:', response.data);
+
+      const allBookings = response.data;
+
+      // Filter bookings for students
+      const userBookings =
+        user.role === 'student'
+          ? allBookings.filter(
+              (booking) =>
+                booking.userId?._id === user.id || booking.userId === user.id
+            )
+          : allBookings;
+
+      console.log('BookingList: User bookings:', userBookings);
+      setBookings(userBookings);
+      setFilteredBookings(userBookings);
       setError(null);
     } catch (err) {
-      console.error('Error fetching bookings:', err);
-      setError('Failed to load bookings. Please try again.');
-      toast.error('Failed to load bookings');
+      console.error('BookingList: Fetch bookings error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
+      setError(
+        err.response?.data?.message ||
+          'Failed to fetch bookings. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancelBooking = async (bookingId) => {
-    if (confirmDelete !== bookingId) {
-      setConfirmDelete(bookingId);
-      // Auto-reset confirm after 5 seconds
-      setTimeout(() => {
-        if (confirmDelete === bookingId) {
-          setConfirmDelete(null);
-        }
-      }, 5000);
-      return;
+  useEffect(() => {
+    let result = [...bookings];
+    if (filters.status) {
+      result = result.filter((b) => b.status === filters.status);
     }
+    if (filters.room) {
+      result = result.filter((b) =>
+        b.room.toLowerCase().includes(filters.room.toLowerCase())
+      );
+    }
+    if (filters.startDate) {
+      result = result.filter(
+        (b) => new Date(b.date) >= new Date(filters.startDate)
+      );
+    }
+    if (filters.endDate) {
+      result = result.filter(
+        (b) => new Date(b.date) <= new Date(filters.endDate)
+      );
+    }
+    console.log('BookingList: Filtered bookings:', result.length);
+    setFilteredBookings(result);
+  }, [bookings, filters]);
 
-    setDeletingId(bookingId);
+  useEffect(() => {
+    if (user) {
+      console.log('BookingList: Triggering fetchBookings for user:', user.id);
+      fetchBookings();
+    } else {
+      console.log('BookingList: No user, skipping fetchBookings');
+    }
+  }, [user, refresh]);
+
+  // Handle approvals and status changes
+  const handleCancel = async (id) => {
+    setShowModal(id);
+    setModalAction({ type: 'cancel' });
+  };
+
+  const handleStatusChange = async (id, status) => {
+    setShowModal(id);
+    setModalAction({ type: 'status', status });
+  };
+
+  const confirmAction = async () => {
+    setLoading(true);
     try {
-      await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/bookings/${bookingId}`,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      );
-      setBookings(bookings.filter((booking) => booking._id !== bookingId));
-      toast.success('Booking cancelled successfully');
+      const token = localStorage.getItem('token');
+      if (modalAction.type === 'cancel') {
+        console.log('BookingList: Cancelling booking:', showModal);
+        await axios.delete(
+          `${import.meta.env.VITE_API_URL}/api/bookings/${showModal}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log('BookingList: Booking cancelled:', showModal);
+      } else if (modalAction.type === 'status') {
+        console.log('BookingList: Updating booking status:', {
+          id: showModal,
+          status: modalAction.status,
+        });
+        await axios.put(
+          `${import.meta.env.VITE_API_URL}/api/bookings/${showModal}/status`,
+          { status: modalAction.status },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log('BookingList: Booking status updated:', {
+          id: showModal,
+          status: modalAction.status,
+        });
+      }
+      fetchBookings();
     } catch (err) {
-      console.error('Error cancelling booking:', err);
-      toast.error('Failed to cancel booking');
+      console.error(
+        `${
+          modalAction.type === 'cancel' ? 'Cancel booking' : 'Update status'
+        } error:`,
+        {
+          message: err.message,
+          response: err.response?.data,
+        }
+      );
+      setError(
+        err.response?.data?.msg ||
+          `Failed to ${
+            modalAction.type === 'cancel' ? 'cancel booking' : 'update status'
+          }`
+      );
     } finally {
-      setDeletingId(null);
-      setConfirmDelete(null);
+      setLoading(false);
+      setShowModal(null);
+      setModalAction(null);
     }
   };
 
-  const getStatusBadge = (booking) => {
-    const now = new Date();
-    const startTime = new Date(`${booking.date}T${booking.startTime}`);
-    const endTime = new Date(`${booking.date}T${booking.endTime}`);
-
-    // Format for comparisons
-    now.setSeconds(0, 0);
-    startTime.setSeconds(0, 0);
-    endTime.setSeconds(0, 0);
-
-    if (endTime < now) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-          <span className="mr-1 w-2 h-2 rounded-full bg-gray-400"></span>
-          Completed
-        </span>
-      );
-    }
-
-    if (startTime <= now && now <= endTime) {
-      return (
-        <span
-          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium animate-pulse"
-          style={{ backgroundColor: lightBlueColor, color: blueColor }}
-        >
-          <span className="mr-1 w-2 h-2 rounded-full bg-blue-500"></span>
-          Active Now
-        </span>
-      );
-    }
-
-    // Upcoming
-    const bookingDay = new Date(booking.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    bookingDay.setHours(0, 0, 0, 0);
-
-    if (bookingDay.getTime() === today.getTime()) {
-      return (
-        <span
-          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-          style={{
-            background: 'linear-gradient(145deg, #fef3c7, #fcd34d)',
-            color: '#92400e',
-          }}
-        >
-          <span className="mr-1 w-2 h-2 rounded-full bg-amber-500"></span>
-          Today
-        </span>
-      );
-    }
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (bookingDay.getTime() === tomorrow.getTime()) {
-      return (
-        <span
-          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-          style={{
-            background: 'linear-gradient(145deg, #d1fae5, #a7f3d0)',
-            color: '#065f46',
-          }}
-        >
-          <span className="mr-1 w-2 h-2 rounded-full bg-green-500"></span>
-          Tomorrow
-        </span>
-      );
-    }
-
-    return (
-      <span
-        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-        style={{ backgroundColor: veryLightBlueColor, color: blueColor }}
-      >
-        <span className="mr-1 w-2 h-2 rounded-full bg-blue-500"></span>
-        Upcoming
-      </span>
-    );
+  const closeModal = () => {
+    setShowModal(null);
+    setModalAction(null);
   };
 
-  const renderActionButton = (booking) => {
-    const now = new Date();
-    const startTime = new Date(`${booking.date}T${booking.startTime}`);
-    const endTime = new Date(`${booking.date}T${booking.endTime}`);
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  };
 
-    // Format for comparisons
-    now.setSeconds(0, 0);
-    startTime.setSeconds(0, 0);
-    endTime.setSeconds(0, 0);
+  const isAdmin = user?.role === 'admin';
+  const title = isAdmin ? 'All Bookings' : 'My Bookings';
 
-    if (endTime < now) {
-      return null; // No actions for completed bookings
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-green-900 text-green-200';
+      case 'pending':
+        return 'bg-yellow-900 text-yellow-200';
+      case 'cancelled':
+        return 'bg-red-900 text-red-200';
+      default:
+        return 'bg-gray-700 text-white';
     }
-
-    const isConfirming = confirmDelete === booking._id;
-
-    return (
-      <button
-        onClick={() => handleCancelBooking(booking._id)}
-        disabled={deletingId === booking._id}
-        className={`text-sm rounded-md py-1.5 px-3 font-medium focus:outline-none transition-all duration-200 shadow-sm transform hover:scale-105 active:scale-95 ${
-          isConfirming ? 'text-white' : 'text-red-500 hover:bg-red-50'
-        }`}
-        style={{
-          backgroundColor: isConfirming ? dangerColor : 'transparent',
-          border: isConfirming ? 'none' : `1px solid ${dangerColor}`,
-        }}
-        onMouseOver={(e) => {
-          if (isConfirming) {
-            e.target.style.backgroundColor = dangerHoverColor;
-          }
-        }}
-        onMouseOut={(e) => {
-          if (isConfirming) {
-            e.target.style.backgroundColor = dangerColor;
-          }
-        }}
-      >
-        {deletingId === booking._id ? (
-          <span className="flex items-center">
-            <svg
-              className="animate-spin -ml-1 mr-2 h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Cancelling...
-          </span>
-        ) : isConfirming ? (
-          <span className="flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 mr-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
-            Confirm Cancel
-          </span>
-        ) : (
-          <span className="flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 mr-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-            Cancel
-          </span>
-        )}
-      </button>
-    );
   };
-
-  // New functions for sorting and filtering
-  const requestSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const sortedBookings = () => {
-    const sorted = [...bookings];
-    if (sortConfig.key) {
-      sorted.sort((a, b) => {
-        let aValue, bValue;
-
-        if (sortConfig.key === 'room') {
-          aValue = a.roomId?.name || '';
-          bValue = b.roomId?.name || '';
-        } else if (sortConfig.key === 'date') {
-          aValue = new Date(`${a.date}T${a.startTime}`);
-          bValue = new Date(`${b.date}T${b.startTime}`);
-        } else if (sortConfig.key === 'purpose') {
-          aValue = a.purpose || '';
-          bValue = b.purpose || '';
-        } else {
-          aValue = a[sortConfig.key] || '';
-          bValue = b[sortConfig.key] || '';
-        }
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sorted;
-  };
-
-  const filteredBookings = () => {
-    if (!searchTerm) return sortedBookings();
-
-    return sortedBookings().filter((booking) => {
-      const roomName = booking.roomId?.name?.toLowerCase() || '';
-      const purpose = booking.purpose?.toLowerCase() || '';
-      const date = new Date(booking.date).toLocaleDateString().toLowerCase();
-
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        roomName.includes(searchLower) ||
-        purpose.includes(searchLower) ||
-        date.includes(searchLower)
-      );
-    });
-  };
-
-  // View Selection Tabs
-  const viewOptions = [
-    {
-      id: 'upcoming',
-      name: 'Upcoming',
-      icon: 'M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z',
-    },
-    {
-      id: 'past',
-      name: 'Past',
-      icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-    },
-    {
-      id: 'all',
-      name: 'All Bookings',
-      icon: 'M4 6h16M4 10h16M4 14h16M4 18h16',
-    },
-  ];
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="flex flex-col items-center">
-          <svg
-            className="animate-spin h-12 w-12 mb-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            style={{ color: blueColor }}
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <p
-            className="text-lg font-medium animate-pulse"
-            style={{ color: blueColor }}
-          >
-            Loading your bookings...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div
-        className="rounded-md p-4 mb-4"
-        style={{ backgroundColor: '#fee2e2' }} // red-100
-      >
-        <div className="flex">
-          <svg
-            className="h-5 w-5 mr-3"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            style={{ color: dangerColor }}
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <div>
-            <p className="text-sm font-medium" style={{ color: dangerColor }}>
-              {error}
-            </p>
-            <button
-              className="mt-2 text-sm underline"
-              style={{ color: dangerColor }}
-              onClick={fetchBookings}
-            >
-              Try again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div>
-      {/* View Selection Tabs */}
-      <div className="mb-6">
-        <div className="bg-gray-50 rounded-lg p-1 flex space-x-1">
-          {viewOptions.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => {
-                setCurrentView(option.id);
-                setConfirmDelete(null);
-              }}
-              className={`flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 flex-1 ${
-                currentView === option.id ? 'shadow-sm' : 'hover:bg-gray-100'
-              }`}
-              style={{
-                backgroundColor:
-                  currentView === option.id ? 'white' : 'transparent',
-                color: currentView === option.id ? blueColor : 'gray',
-              }}
+    <div
+      className="min-h-screen py-8"
+      style={{
+        backgroundImage:
+          'url("https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      <div className="container mx-auto px-4">
+        <div className="bg-black bg-opacity-80 text-white rounded-lg shadow-xl p-8 backdrop-blur-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold text-center border-b border-gray-700 pb-4">
+              {title}
+            </h2>
+            <Link
+              to="/bookings/new"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-300"
             >
+              Create Booking
+            </Link>
+          </div>
+
+          {/* Filters */}
+          <div className="mb-8 p-4 bg-gray-900 bg-opacity-70 rounded-lg">
+            <h3 className="text-xl font-semibold mb-4">Filter Bookings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Status
+                </label>
+                <select
+                  name="status"
+                  value={filters.status}
+                  onChange={handleFilterChange}
+                  className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Room
+                </label>
+                <input
+                  type="text"
+                  name="room"
+                  value={filters.room}
+                  onChange={handleFilterChange}
+                  placeholder="Search by room name"
+                  className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  From Date
+                </label>
+                <input
+                  type="date"
+                  name="startDate"
+                  value={filters.startDate}
+                  onChange={handleFilterChange}
+                  className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  To Date
+                </label>
+                <input
+                  type="date"
+                  name="endDate"
+                  value={filters.endDate}
+                  onChange={handleFilterChange}
+                  className="w-full rounded-md bg-gray-800 border-gray-700 text-white py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() =>
+                  setFilters({
+                    status: '',
+                    room: '',
+                    startDate: '',
+                    endDate: '',
+                  })
+                }
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition duration-300"
+                disabled={loading}
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+
+          {/* Booking List */}
+          {error && (
+            <div className="bg-red-900 text-white p-4 rounded-md mb-6 flex justify-between items-center">
+              <span>{error}</span>
+              <div>
+                <button
+                  onClick={fetchBookings}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md mr-2"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login';
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center items-center p-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              <span className="ml-3 text-xl">Loading bookings...</span>
+            </div>
+          ) : filteredBookings.length === 0 ? (
+            <div className="bg-gray-800 bg-opacity-70 rounded-lg p-8 text-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 mr-1.5"
+                className="h-16 w-16 mx-auto text-gray-400 mb-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -450,360 +361,188 @@ const BookingList = ({ refresh }) => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d={option.icon}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              {option.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Search and Sort Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 space-y-4 md:space-y-0">
-        <div className="relative w-full md:w-64">
-          <div
-            className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-all duration-200 ${
-              isSearchFocused ? 'text-blue-500' : 'text-gray-400'
-            }`}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Search bookings..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            className="pl-10 pr-4 py-2 w-full rounded-md border transition-all duration-200 focus:outline-none focus:ring-2"
-            style={{
-              borderColor: isSearchFocused ? blueColor : '#e5e7eb',
-              boxShadow: isSearchFocused ? `0 0 0 1px ${blueColor}` : 'none',
-            }}
-          />
-        </div>
-
-        <div className="flex items-center space-x-2 text-sm text-gray-500 w-full md:w-auto justify-end">
-          <span>Sort by:</span>
-          <select
-            value={`${sortConfig.key}-${sortConfig.direction}`}
-            onChange={(e) => {
-              const [key, direction] = e.target.value.split('-');
-              setSortConfig({ key, direction });
-            }}
-            className="border rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:border-blue-300 text-sm"
-            style={{ borderColor: '#e5e7eb' }}
-          >
-            <option value="date-asc">Date (Earliest)</option>
-            <option value="date-desc">Date (Latest)</option>
-            <option value="room-asc">Room (A-Z)</option>
-            <option value="purpose-asc">Purpose (A-Z)</option>
-          </select>
-        </div>
-      </div>
-
-      {filteredBookings().length === 0 ? (
-        <div
-          className="bg-white rounded-lg border border-gray-200 p-8 text-center"
-          style={{ borderStyle: 'dashed' }}
-        >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              style={{ color: blueColor }}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-xl font-medium mb-2" style={{ color: blueColor }}>
-            No Bookings Found
-          </h3>
-          <p className="text-gray-500 mb-4 max-w-md mx-auto">
-            {searchTerm
-              ? `No bookings matching "${searchTerm}"`
-              : currentView === 'upcoming'
-              ? "You don't have any upcoming bookings."
-              : currentView === 'past'
-              ? "You don't have any past bookings."
-              : "You don't have any bookings yet."}
-          </p>
-          {currentView !== 'upcoming' && !searchTerm && (
-            <button
-              onClick={() => setCurrentView('upcoming')}
-              className="inline-flex items-center text-sm font-medium px-4 py-2 rounded-md"
-              style={{ backgroundColor: lightBlueColor, color: blueColor }}
-            >
-              View Upcoming Bookings
-            </button>
-          )}
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="inline-flex items-center text-sm font-medium px-4 py-2 rounded-md"
-              style={{ backgroundColor: lightBlueColor, color: blueColor }}
-            >
-              Clear Search
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    style={{ color: blueColor }}
-                    onClick={() => requestSort('room')}
-                  >
-                    <div className="flex items-center">
+              <p className="text-xl">No bookings found matching your filters</p>
+              <p className="text-gray-400 mt-2">
+                {isAdmin
+                  ? 'No bookings exist in the system.'
+                  : 'You have no bookings. Try creating a new booking or contact support if you believe this is an error.'}
+              </p>
+              {!isAdmin && (
+                <p className="text-yellow-300 mt-2">
+                  Debug: User ID: {user.id}, Role: {user.role}. If bookings
+                  should exist, please check with an admin.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-black bg-opacity-50 backdrop-blur-sm rounded-lg overflow-hidden">
+                <thead>
+                  <tr className="bg-gray-900 text-left">
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
                       Room
-                      {sortConfig.key === 'room' && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 ml-1"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d={
-                              sortConfig.direction === 'asc'
-                                ? 'M5 15l7-7 7 7'
-                                : 'M19 9l-7 7-7-7'
-                            }
-                          />
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    style={{ color: blueColor }}
-                    onClick={() => requestSort('date')}
-                  >
-                    <div className="flex items-center">
-                      Date & Time
-                      {sortConfig.key === 'date' && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 ml-1"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d={
-                              sortConfig.direction === 'asc'
-                                ? 'M5 15l7-7 7 7'
-                                : 'M19 9l-7 7-7-7'
-                            }
-                          />
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    style={{ color: blueColor }}
-                    onClick={() => requestSort('purpose')}
-                  >
-                    <div className="flex items-center">
-                      Purpose
-                      {sortConfig.key === 'purpose' && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 ml-1"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d={
-                              sortConfig.direction === 'asc'
-                                ? 'M5 15l7-7 7 7'
-                                : 'M19 9l-7 7-7-7'
-                            }
-                          />
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                    style={{ color: blueColor }}
-                  >
-                    Status
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                    style={{ color: blueColor }}
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBookings().map((booking) => (
-                  <tr
-                    key={booking._id}
-                    className="hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div
-                          className="flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center mr-3"
-                          style={{ backgroundColor: veryLightBlueColor }}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            style={{ color: blueColor }}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                            />
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {booking.roomId?.name || 'Unknown Room'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {booking.roomId?.building || ''}{' '}
-                            {booking.roomId?.floor
-                              ? `Floor ${booking.roomId.floor}`
-                              : ''}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <div className="text-sm font-medium text-gray-900 flex items-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 mr-1.5 text-gray-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {new Date(booking.date).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center mt-1">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 mr-1.5 text-gray-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {new Date(
-                            `2000-01-01T${booking.startTime}`
-                          ).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                          {' to '}
-                          {new Date(
-                            `2000-01-01T${booking.endTime}`
-                          ).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 flex items-center">
-                        <div
-                          className="w-2 h-2 rounded-full mr-2"
-                          style={{
-                            backgroundColor:
-                              booking.purpose === 'Study'
-                                ? '#2563eb'
-                                : booking.purpose === 'Meeting'
-                                ? '#7c3aed'
-                                : booking.purpose === 'Project Work'
-                                ? '#d97706'
-                                : booking.purpose === 'Event'
-                                ? '#059669'
-                                : '#6b7280',
-                          }}
-                        ></div>
-                        {booking.purpose}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(booking)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {renderActionButton(booking)}
-                    </td>
+                    </th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                      Time
+                    </th>
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                    {isAdmin && (
+                      <>
+                        <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                          Booked By
+                        </th>
+                        <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                          Email
+                        </th>
+                      </>
+                    )}
+                    <th className="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {filteredBookings.map((booking) => (
+                    <tr
+                      key={booking._id}
+                      className="hover:bg-gray-800 transition-colors duration-200"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {booking.room || 'Unknown Room'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {formatDate(booking.date)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {formatTime(booking.startTime)} -{' '}
+                        {formatTime(booking.endTime)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(
+                            booking.status
+                          )}`}
+                        >
+                          {booking.status.charAt(0).toUpperCase() +
+                            booking.status.slice(1)}
+                        </span>
+                      </td>
+                      {isAdmin && (
+                        <>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {booking.userId
+                              ? `${booking.userId.firstName || ''} ${
+                                  booking.userId.lastName || ''
+                                }`.trim() || 'Unknown'
+                              : 'Unknown'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {booking.userId?.email || 'Unknown'}
+                          </td>
+                        </>
+                      )}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {isAdmin ? (
+                          <select
+                            value={booking.status}
+                            onChange={(e) =>
+                              handleStatusChange(booking._id, e.target.value)
+                            }
+                            className="bg-gray-800 text-white border border-gray-700 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={loading}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirm</option>
+                            <option value="cancelled">Cancel</option>
+                          </select>
+                        ) : (
+                          booking.status !== 'cancelled' &&
+                          (booking.userId?._id === user.id ||
+                            booking.userId === user.id) && (
+                            <button
+                              className="bg-red-800 hover:bg-red-700 text-white px-3 py-1 rounded-md transition duration-200"
+                              onClick={() => handleCancel(booking._id)}
+                              disabled={loading}
+                            >
+                              Cancel
+                            </button>
+                          )
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Confirmation Modal */}
+          {showModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+              <div className="bg-gray-900 rounded-lg max-w-md w-full p-6 shadow-xl">
+                <h3 className="text-xl font-bold mb-4 text-white">
+                  Confirm Action
+                </h3>
+                <p className="mb-6 text-gray-300">
+                  {modalAction.type === 'cancel'
+                    ? 'Are you sure you want to cancel this booking?'
+                    : `Change status to ${modalAction.status}?`}
+                </p>
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={closeModal}
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                    disabled={loading}
+                  >
+                    No
+                  </button>
+                  <button
+                    onClick={confirmAction}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span className="flex items-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        Processing...
+                      </span>
+                    ) : (
+                      'Yes, Confirm'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
