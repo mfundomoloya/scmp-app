@@ -25,7 +25,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // Frontend URL (Vite default)
+    origin: 'https://scmp-app-sepia.vercel.app/', // Frontend URL (Vite default)
     methods: ['GET', 'POST'],
   },
 });
@@ -45,7 +45,7 @@ const upload = multer({ storage });
 
 
 // Middleware
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: 'https://scmp-app-sepia.vercel.app/' }));
 app.use(bodyParser.json());
 app.use(express.json({ extended: false }));
 // Apply rate limiter, excluding Socket.IO endpoints
