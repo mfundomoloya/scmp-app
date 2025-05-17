@@ -57,6 +57,7 @@ const limiter = rateLimit({
 app.use(limiter);
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/health', (req, res) => res.status(200).json({ status: 'OK' }));
 
 //using the routes
 app.use('/api/users', userRoutes);
@@ -136,3 +137,5 @@ app.get('/', (req, res) => {
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
+module.exports = app;
