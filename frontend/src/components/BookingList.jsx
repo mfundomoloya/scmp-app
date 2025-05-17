@@ -2,7 +2,6 @@ import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-//import { format, parseISO } from 'date-fns';
 
 const BookingList = ({ refresh }) => {
   const [bookings, setBookings] = useState([]);
@@ -37,13 +36,26 @@ const BookingList = ({ refresh }) => {
 
   // Format time as HH:mm (24-hour clock, South African locale)
   const formatTime = (timeString) => {
+    if (!timeString || typeof timeString !== 'string') {
+      console.warn('BookingList: Invalid time string:', timeString);
+      return 'Invalid Time';
+    }
+    // Check if timeString is already in HH:mm format
+    const timeRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+    if (timeRegex.test(timeString)) {
+      return timeString; // Already in HH:mm format, e.g., "14:30"
+    }
+    // Try parsing as a full date-time string
     const t = new Date(timeString);
-    if (isNaN(t)) return 'Invalid Time';
-    return t.toLocaleTimeString('en-ZA', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    if (!isNaN(t)) {
+      return t.toLocaleTimeString('en-ZA', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    }
+    console.warn('BookingList: Failed to parse time:', timeString);
+    return 'Invalid Time';
   };
 
   const fetchBookings = async () => {
@@ -60,7 +72,7 @@ const BookingList = ({ refresh }) => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log('BookingList: Fetch response:', response.data);
+      console.log('BookingList: Fetch response:', JSON.stringify(response.data, null, 2));
 
       const allBookings = response.data;
 
@@ -73,7 +85,7 @@ const BookingList = ({ refresh }) => {
             )
           : allBookings;
 
-      console.log('BookingList: User bookings:', userBookings);
+      console.log('BookingList: User bookings:', JSON.stringify(userBookings, null, 2));
       setBookings(userBookings);
       setFilteredBookings(userBookings);
       setError(null);
