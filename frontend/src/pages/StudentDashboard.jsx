@@ -421,9 +421,9 @@ const StudentDashboard = () => {
                           <option value="">Select Lecturer</option>
                           {lecturers.length > 0 ? (
                             lecturers.map(lecturer => (
-                              <option key={lecturer._id} value={lecturer._id}>
-                                {lecturer.name}
-                              </option>
+                               <option key={lecturer._id} value={lecturer._id}>
+                        {lecturer.name || `${lecturer.firstName || ''} ${lecturer.lastName || ''}`.trim()}
+                      </option>
                             ))
                           ) : (
                             <option value="" disabled>No lecturers available</option>
