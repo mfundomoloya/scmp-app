@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import backgroundImage from '../assets/timetable.jpg';
+import backgroundImage from '../assets/timeTable.jpg';
 
 const TimetableViewer = () => {
   const blueColor = '#1d4ed8'; // blue-700
