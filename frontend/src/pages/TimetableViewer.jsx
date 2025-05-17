@@ -15,7 +15,7 @@ const TimetableViewer = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchTimetables = async () => {
+ const fetchTimetables = async () => {
       setIsLoading(true);
       try {
         console.log('Fetching timetables for user:', user?.email, 'role:', user?.role);
@@ -29,8 +29,9 @@ const TimetableViewer = () => {
           }
         );
         console.log('Timetables response:', JSON.stringify(response.data, null, 2));
-        const fetchedTimetables = Array.isArray(response.data.timetables)
-          ? response.data.timetables
+        // FIX: Use response.data directly if it's an array
+        const fetchedTimetables = Array.isArray(response.data)
+          ? response.data
           : [];
         if (fetchedTimetables.length === 0) {
           console.warn('No timetables found for user:', user?.email);
