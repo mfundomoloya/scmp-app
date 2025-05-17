@@ -167,8 +167,7 @@ const getLecturers = async (req, res) => {
     if (role !== 'lecturer') {
       return res.status(400).json({ msg: 'Invalid role query' });
     }
-    const lecturers = await User.find({ role: 'lecturer' }).select('_id name email');
-    console.log('Get lecturers: count:', lecturers.length);
+const lecturers = await User.find({ role: 'lecturer' }).select('_id firstName lastName email');    console.log('Get lecturers: count:', lecturers.length);
     res.json(lecturers);
   } catch (err) {
     console.error('Error fetching lecturers:', err);
