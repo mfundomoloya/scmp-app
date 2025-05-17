@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import backgroundImage from '../assets/Maintenance.jpg';
+import { useNavigate } from 'react-router-dom';
 
 const MaintenanceReportList = () => {
   // Define colors explicitly to match Announcement/Timetable component
@@ -14,6 +15,7 @@ const MaintenanceReportList = () => {
   const [maintenanceReports, setMaintenanceReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMaintenanceReports = async () => {
@@ -56,7 +58,7 @@ const MaintenanceReportList = () => {
   }, [user]);
 
   const handleReportNewIssue = () => {
-    window.location.href = '/maintenance/new';
+    navigate('/maintenance/new');
   };
 
   if (isLoading) {
@@ -283,7 +285,7 @@ const MaintenanceReportList = () => {
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 text-gray-700">
-                        {report.roomName || 'N/A'}
+                        {report.roomId?.name || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-gray-700">
                         {report.description}

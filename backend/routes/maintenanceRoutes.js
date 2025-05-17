@@ -12,5 +12,6 @@ const express = require('express');
   router.get('/', protect, getMaintenanceReports);
   router.put('/:id/status', protect, updateMaintenanceReportStatus);
   router.put('/room/:roomId', protect, updateRoomMaintenance);
+  router.get('/reports', protect, getMaintenanceReports);
 
   module.exports = router;
