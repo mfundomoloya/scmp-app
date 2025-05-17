@@ -40,7 +40,7 @@ const MaintenanceReportPage = () => {
 
         // Fetch maintenance reports
         const reportsResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/maintenance/reports`,
+          `${import.meta.env.VITE_API_URL}/api/maintenance`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -87,7 +87,7 @@ const MaintenanceReportPage = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/maintenance/reports`,
+        `${import.meta.env.VITE_API_URL}/api/maintenance`,
         formData,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -439,25 +439,27 @@ const MaintenanceReportPage = () => {
                           className="text-lg font-semibold"
                           style={{ color: blueColor }}
                         >
-                          {report.roomName || 'Room Not Specified'}
+                          {report.roomId?.name || 'Room Not Specified'}
                         </h4>
                         <span
-                          className={`text-xs px-3 py-1 rounded-full border ${
-                            report.urgency === 'critical'
-                              ? 'bg-red-100 text-red-800 border-red-300'
-                              : report.urgency === 'high'
-                              ? 'bg-amber-100 text-amber-800 border-amber-300'
-                              : report.urgency === 'medium'
-                              ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                              : 'bg-green-100 text-green-800 border-green-300'
-                          }`}
+                           className={`text-xs px-3 py-1 rounded-full border ${
+    report.urgency === 'critical'
+      ? 'bg-red-100 text-red-800 border-red-300'
+      : report.urgency === 'high'
+      ? 'bg-amber-100 text-amber-800 border-amber-300'
+      : report.urgency === 'medium'
+      ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+      : 'bg-green-100 text-green-800 border-green-300'
+  }`}
                         >
-                          {report.urgency.charAt(0).toUpperCase() +
-                            report.urgency.slice(1)}
-                        </span>
-                        <span className="text-xs px-3 py-1 rounded-full border bg-blue-100 text-blue-800 border-blue-300">
-                          {report.reportType.charAt(0).toUpperCase() +
-                            report.reportType.slice(1)}
+                         {report.urgency
+    ? report.urgency.charAt(0).toUpperCase() + report.urgency.slice(1)
+    : 'Unknown'}
+</span>
+<span className="text-xs px-3 py-1 rounded-full border bg-blue-100 text-blue-800 border-blue-300">
+  {report.reportType
+    ? report.reportType.charAt(0).toUpperCase() + report.reportType.slice(1)
+    : 'Other'}
                         </span>
                       </div>
                       <p className="text-gray-700 mb-4">{report.description}</p>
