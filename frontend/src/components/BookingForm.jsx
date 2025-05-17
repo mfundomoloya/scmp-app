@@ -185,7 +185,7 @@ const BookingForm = ({ onBookingCreated }) => {
       if (slot.startTime.includes(':') && !slot.startTime.includes('T')) {
         return `${slot.startTime}-${slot.endTime}`;
       }
-      
+
       // Otherwise, try to parse ISO format
       const start = format(parseISO(slot.startTime), 'HH:mm', {
         timeZone: 'Africa/Johannesburg',
@@ -218,7 +218,7 @@ const BookingForm = ({ onBookingCreated }) => {
         <div
           className="form-overlay"
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: 'rgba(34, 59, 87, 0.7)',
             padding: '2rem',
             borderRadius: '0.5rem',
             backdropFilter: 'blur(5px)',

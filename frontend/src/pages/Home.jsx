@@ -118,8 +118,8 @@ const Home = () => {
                 Smart Scheduling
               </h3>
               <p className="text-gray-600 text-center">
-                Easily book rooms and resources with our intelligent scheduling
-                system that optimizes space utilization across campus.
+                Easily book rooms with our intelligent scheduling system that
+                optimizes space utilization across campus.
               </p>
             </div>
 
@@ -155,8 +155,8 @@ const Home = () => {
                 Maintenance Reporting
               </h3>
               <p className="text-gray-600 text-center">
-                Report and track maintenance issues in real-time, ensuring quick
-                resolution and maintaining campus facilities.
+                Report and track maintenance issues ensuring quick resolution
+                and maintaining campus facilities.
               </p>
             </div>
 
@@ -189,11 +189,10 @@ const Home = () => {
                 className="text-xl font-semibold text-center mb-2"
                 style={{ color: blueColor }}
               >
-                Energy Efficiency
+                The Campus Announcements
               </h3>
               <p className="text-gray-600 text-center">
-                Our smart system helps reduce energy consumption by optimizing
-                room usage and automating resource allocation.
+                Get all the upcoming events through our announcements
               </p>
             </div>
           </div>
@@ -212,12 +211,11 @@ const Home = () => {
                 className="text-3xl font-bold mb-4"
                 style={{ color: blueColor }}
               >
-                Committed to Sustainability
+                We serve what is best
               </h2>
               <p className="text-gray-600 mb-6">
-                Our Smart Campus initiative aims to reduce environmental impact
-                through digital solutions that minimize paper usage, optimize
-                energy consumption, and promote sustainable practices.
+                Our Smart Campus aims at making sure that bookings
+                ,Announcements and courses.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start">
@@ -235,7 +233,7 @@ const Home = () => {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  <span>Paperless booking and management systems</span>
+                  <span>Announcements</span>
                 </li>
                 <li className="flex items-start">
                   <svg
@@ -252,7 +250,7 @@ const Home = () => {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  <span>Optimized resource allocation to reduce waste</span>
+                  <span>TimeTables</span>
                 </li>
                 <li className="flex items-start">
                   <svg
@@ -269,7 +267,7 @@ const Home = () => {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  <span>Energy usage tracking and optimization</span>
+                  <span>Bookigs</span>
                 </li>
               </ul>
             </div>
