@@ -21,7 +21,7 @@ const About = () => {
       <div className="container mx-auto px-4 py-16 relative z-10">
         <div
           className="max-w-3xl mx-auto bg-white bg-opacity-95 p-8 md:p-10 rounded-xl shadow-2xl"
-          // style={{ borderTop: `4px solid ${blueColor}` }}
+          style={{ borderTop: `4px solid ${blueColor}` }}
         >
           <h1 className="text-3xl md:text-4xl font-bold text-black mb-8 pb-4 border-b border-gray-200">
             About Us
