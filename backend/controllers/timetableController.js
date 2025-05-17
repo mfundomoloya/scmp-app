@@ -240,52 +240,11 @@ const getTimetables = async (req, res) => {
       .sort({ startTime: 1 })
       .lean();
 
-    const invalidTimetables = timetables.filter(t => t.courseId === null);
-    if (invalidTimetables.length > 0) {
-      console.warn(
-        'Get timetables: Invalid timetables with null courseId:',
-        JSON.stringify(
-          invalidTimetables.map(t => ({
-            _id: t._id,
-            courseId: t.courseId,
-            subject: t.subject,
-            userIds: t.userIds.map(u => u.email),
-          })),
-          null,
-          2
-        )
-      );
-    }
-
     const validTimetables = timetables.filter(t => t.courseId !== null);
     console.log('Get timetables: Found timetables:', validTimetables.length);
 
-    // Transform to frontend-expected format
-    const formattedTimetables = validTimetables.map(t => ({
-      course: t.courseId?.code || 'N/A',
-      subject: t.subject || 'N/A',
-      room: t.roomId?.name || 'N/A',
-      day: t.day || 'N/A',
-      time: t.startTime && t.endTime
-        ? `${new Date(t.startTime).toLocaleTimeString('en-ZA', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          })} - ${new Date(t.endTime).toLocaleTimeString('en-ZA', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          })}`
-        : 'N/A',
-    }));
-
-    console.log(
-      'Get timetables: total count:', timetables.length,
-      'valid count:', validTimetables.length,
-      'formatted:', JSON.stringify(formattedTimetables, null, 2)
-    );
-
-    res.json(formattedTimetables);
+    // Return the full timetable objects for the frontend
+    res.json(validTimetables);
   } catch (err) {
     console.error('Error fetching timetables:', err);
     res.status(500).json({ message: 'Server error' });

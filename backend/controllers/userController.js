@@ -65,7 +65,7 @@ const updateProfile = async (req, res) => {
       return res.status(403).json({ msg: 'Only students can update profile settings' });
     }
 
-    // Validate courseCodes
+    // Validate courseCodes and sync timetables
     if (parsedCourseCodes) {
       const validCourses = await Course.find({ code: { $in: parsedCourseCodes } });
       const validCourseCodes = validCourses.map(course => course.code);
@@ -75,7 +75,6 @@ const updateProfile = async (req, res) => {
         return res.status(400).json({ msg: `Invalid course codes: ${invalidCodes.join(', ')}` });
       }
 
-      // Sync Timetable.userIds
       const oldCourseCodes = user.courseCodes || [];
       const newCourseCodes = parsedCourseCodes;
 
