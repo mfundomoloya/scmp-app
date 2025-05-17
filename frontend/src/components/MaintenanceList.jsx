@@ -18,44 +18,43 @@ const MaintenanceReportList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+  let intervalId;
+
     const fetchMaintenanceReports = async () => {
-      setIsLoading(true);
-      try {
-        console.log('Fetching maintenance reports for user:', user?.email);
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/maintenance/reports`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
-
-        console.log('Maintenance reports response:', response.data);
-        setMaintenanceReports(
-          Array.isArray(response.data) ? response.data : []
-        );
-      } catch (err) {
-        console.error('Fetch maintenance reports error:', {
-          message: err.message,
-          status: err.response?.status,
-          data: err.response?.data,
-        });
-        setError(
-          err.response?.data?.msg || 'Failed to fetch maintenance reports'
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (user) {
-      fetchMaintenanceReports();
-    } else {
+     setIsLoading(true);
+    try {
+      console.log('Fetching maintenance reports for user:', user?.email);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/maintenance/reports`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      setMaintenanceReports(
+        Array.isArray(response.data) ? response.data : []
+      );
+      setError(null);
+    } catch (err) {
+      setError(
+        err.response?.data?.msg || 'Failed to fetch maintenance reports'
+      );
+    } finally {
       setIsLoading(false);
-      setError('Please log in to view maintenance reports');
     }
-  }, [user]);
+  };
+
+  if (user) {
+    fetchMaintenanceReports();
+    intervalId = setInterval(fetchMaintenanceReports, 5000); // Poll every 5 seconds
+  } else {
+    setIsLoading(false);
+    setError('Please log in to view maintenance reports');
+  }
+
+  return () => clearInterval(intervalId);
+}, [user]);
 
   const handleReportNewIssue = () => {
     navigate('/maintenance/new');
