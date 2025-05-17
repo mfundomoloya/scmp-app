@@ -185,7 +185,7 @@ const BookingForm = ({ onBookingCreated }) => {
       if (slot.startTime.includes(':') && !slot.startTime.includes('T')) {
         return `${slot.startTime}-${slot.endTime}`;
       }
-
+      
       // Otherwise, try to parse ISO format
       const start = format(parseISO(slot.startTime), 'HH:mm', {
         timeZone: 'Africa/Johannesburg',
