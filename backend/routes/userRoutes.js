@@ -35,6 +35,6 @@ const upload = multer({
 
 router.get('/profile', protect, getProfile);
 router.put('/profile', protect, restrictTo('student'), upload.single('avatar'), updateProfile);
-router.get('/', protect, restrictTo('student', 'lecturer'), getLecturers);
+router.get('/', protect, restrictTo('student', 'lecturer', 'admin'), getLecturers);
 
 module.exports = router;

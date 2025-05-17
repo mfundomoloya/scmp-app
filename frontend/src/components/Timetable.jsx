@@ -5,22 +5,22 @@ import backgroundImage from '../assets/AnnouncementB.jpeg';
 import timetableIcon from '../assets/timetable.jpg';
 
 const Timetable = () => {
-  // Define colors explicitly to match Announcement component
-  const blueColor = '#1d4ed8'; // blue-700 equivalent
-  const lightBlueColor = '#dbeafe'; // blue-100 equivalent
-  const veryLightBlueColor = '#eff6ff'; // blue-50 equivalent
-  const mediumBlueColor = '#2563eb'; // blue-600 equivalent
+  const blueColor = '#1d4ed8'; // blue-700
+  const lightBlueColor = '#dbeafe'; // blue-100
+  const veryLightBlueColor = '#eff6ff'; // blue-50
+  const mediumBlueColor = '#2563eb'; // blue-600
 
   const { user } = useContext(AuthContext);
   const [timetable, setTimetable] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  console.log('Timetable: Initial render');
+  console.log('Timetable: Initial render, user:', user?.email);
 
   useEffect(() => {
     const fetchTimetable = async () => {
       setLoading(true);
+      setError('');
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -43,7 +43,9 @@ const Timetable = () => {
         const courseCodes = userResponse.data.courseCodes || [];
 
         if (courseCodes.length === 0) {
+          console.warn('Timetable: No courseCodes found for user');
           setTimetable([]);
+          setError('No courses enrolled. Please select courses in your profile.');
           return;
         }
 
@@ -52,7 +54,7 @@ const Timetable = () => {
           `${import.meta.env.VITE_API_URL}/api/timetable`,
           {
             headers: { Authorization: `Bearer ${token}` },
-            params: { courseCodes: courseCodes.join(',') },
+            params: { courseCodes: courseCodes.join(','), timestamp: Date.now() },
           }
         );
 
@@ -60,14 +62,25 @@ const Timetable = () => {
           'Timetable: Fetched timetable:',
           JSON.stringify(timetableResponse.data, null, 2)
         );
+
+        if (!Array.isArray(timetableResponse.data)) {
+          console.error('Timetable: Invalid response format:', timetableResponse.data);
+          throw new Error('Invalid timetable data received');
+        }
+
         setTimetable(timetableResponse.data);
       } catch (err) {
-        console.error('Timetable: Error fetching data:', err);
-        setError(err.response?.data?.msg || 'Error fetching timetable');
+        console.error('Timetable: Error fetching data:', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
+        setError(err.response?.data?.message || err.message || 'Error fetching timetable');
       } finally {
         setLoading(false);
       }
     };
+
     if (user) fetchTimetable();
   }, [user]);
 
@@ -158,15 +171,14 @@ const Timetable = () => {
 
   return (
     <div className="relative py-6">
-      {/* Background with Overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: `url(${backgroundImage})` }}
+        aria-hidden="true"
       >
         <div className="absolute inset-0 bg-white bg-opacity-90"></div>
       </div>
 
-      {/* Content */}
       <div className="container mx-auto px-6 relative z-10">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-4xl mx-auto">
           <div className="flex items-center justify-center md:justify-start mb-6">
@@ -213,6 +225,9 @@ const Timetable = () => {
               role="alert"
             >
               <p>{error}</p>
+              <p className="text-sm mt-2">
+                Debug: User email: {user.email}, Role: {user.role}
+              </p>
             </div>
           )}
 
@@ -222,8 +237,10 @@ const Timetable = () => {
               style={{ borderColor: lightBlueColor }}
             >
               <p className="text-lg">
-                No timetable entries available. Please select courses in your
-                profile.
+                No timetable entries available. Please select courses in your profile.
+              </p>
+              <p className="text-sm text-gray-400 mt-2">
+                Debug: User email: {user.email}, Role: {user.role}
               </p>
             </div>
           ) : (
@@ -257,18 +274,24 @@ const Timetable = () => {
                 >
                   {timetable.map((entry, index) => (
                     <tr
-                      key={index}
+                      key={entry._id || index}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 text-gray-700">
-                        {entry.course}
+                        {entry.course || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-gray-700">
-                        {entry.subject}
+                        {entry.subject || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-gray-700">{entry.room}</td>
-                      <td className="px-6 py-4 text-gray-700">{entry.day}</td>
-                      <td className="px-6 py-4 text-gray-700">{entry.time}</td>
+                      <td className="px-6 py-4 text-gray-700">
+                        {entry.room || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">
+                        {entry.day || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">
+                        {entry.time || 'N/A'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -277,7 +300,6 @@ const Timetable = () => {
           )}
         </div>
 
-        {/* Divider - Similar to Announcement component */}
         <div
           style={{
             borderTop: `1px solid ${lightBlueColor}`,

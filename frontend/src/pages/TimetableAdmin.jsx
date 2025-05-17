@@ -30,7 +30,6 @@ const TimetableAdmin = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        console.log('Fetching data for admin:', user?.email);
         const [timetablesRes, coursesRes, roomsRes, lecturersRes] = await Promise.all([
           axios.get(`${import.meta.env.VITE_API_URL}/api/timetable/all`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -45,21 +44,12 @@ const TimetableAdmin = () => {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           }),
         ]);
-        console.log('Timetables response:', timetablesRes.data);
-        console.log('Courses response:', coursesRes.data);
-        console.log('Rooms response:', roomsRes.data);
-        console.log('Lecturers response:', lecturersRes.data);
         setTimetables(Array.isArray(timetablesRes.data.timetables) ? timetablesRes.data.timetables : []);
         setConflicts(Array.isArray(timetablesRes.data.conflicts) ? timetablesRes.data.conflicts : []);
         setCourses(Array.isArray(coursesRes.data) ? coursesRes.data : []);
         setRooms(Array.isArray(roomsRes.data) ? roomsRes.data : []);
         setLecturers(Array.isArray(lecturersRes.data) ? lecturersRes.data : []);
       } catch (err) {
-        console.error('Fetch data error:', {
-          message: err.message,
-          status: err.response?.status,
-          data: err.response?.data,
-        });
         setError(err.response?.data?.msg || 'Failed to fetch data');
       } finally {
         setIsLoading(false);
@@ -72,6 +62,21 @@ const TimetableAdmin = () => {
       setError('Unauthorized access');
     }
   }, [user]);
+
+  // Auto-select the only lecturer when form is shown and not in edit mode
+  useEffect(() => {
+    if (
+      showForm &&
+      !editMode &&
+      lecturers.length === 1 &&
+      formData.lecturerEmails.length === 0
+    ) {
+      setFormData(prev => ({
+        ...prev,
+        lecturerEmails: [lecturers[0].email],
+      }));
+    }
+  }, [lecturers, showForm, editMode, formData.lecturerEmails.length]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -104,16 +109,20 @@ const TimetableAdmin = () => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!formData.lecturerEmails || formData.lecturerEmails.length === 0) {
+      setError('Please select at least one lecturer.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
     if (new Date(`1970-01-01T${formData.endTime}:00`) <= new Date(`1970-01-01T${formData.startTime}:00`)) {
       setError('End time must be after start time');
       setTimeout(() => setError(null), 3000);
       return;
     }
     try {
-      console.log('Creating timetable:', formData);
       const payload = {
         ...formData,
-        lecturerEmails: formData.lecturerEmails.join(','),
+        lecturerEmails: formData.lecturerEmails,
       };
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/timetable`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -123,7 +132,6 @@ const TimetableAdmin = () => {
       resetForm();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      console.error('Create timetable error:', err);
       setError(err.response?.data?.msg || 'Failed to create timetable');
       setTimeout(() => setError(null), 3000);
     }
@@ -152,10 +160,9 @@ const TimetableAdmin = () => {
       return;
     }
     try {
-      console.log('Updating timetable:', editTimetableId, formData);
       const payload = {
         ...formData,
-        lecturerEmails: formData.lecturerEmails.join(','),
+        lecturerEmails: formData.lecturerEmails,
       };
       const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/timetable/${editTimetableId}`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -165,7 +172,6 @@ const TimetableAdmin = () => {
       resetForm();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      console.error('Update timetable error:', err);
       setError(err.response?.data?.msg || 'Failed to update timetable');
       setTimeout(() => setError(null), 3000);
     }
@@ -174,7 +180,6 @@ const TimetableAdmin = () => {
   const handleDelete = async (timetableId) => {
     if (!window.confirm('Are you sure you want to delete this timetable?')) return;
     try {
-      console.log('Deleting timetable:', timetableId);
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/timetable/${timetableId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
@@ -182,7 +187,6 @@ const TimetableAdmin = () => {
       setSuccess('Timetable deleted successfully');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      console.error('Delete timetable error:', err);
       setError(err.response?.data?.msg || 'Failed to delete timetable');
       setTimeout(() => setError(null), 3000);
     }
@@ -198,7 +202,6 @@ const TimetableAdmin = () => {
       return;
     }
     try {
-      console.log('Filtering timetables by course:', filterCourse);
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/timetable/filter`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         params: { courseCode: filterCourse },
@@ -206,7 +209,6 @@ const TimetableAdmin = () => {
       setTimetables(res.data.timetables);
       setConflicts(res.data.conflicts);
     } catch (err) {
-      console.error('Filter timetable error:', err);
       setError(err.response?.data?.msg || 'Failed to filter timetables');
       setTimeout(() => setError(null), 3000);
     }
@@ -433,26 +435,20 @@ const TimetableAdmin = () => {
                   <th className="px-6 py-4 text-left">Room</th>
                   <th className="px-6 py-4 text-left">Day</th>
                   <th className="px-6 py-4 text-left">Time</th>
-                  {/* <th className="px-6 py-4 text-left">Users</th> */}
                   <th className="px-6 py-4 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
                 {timetables.map(timetable => (
                   <tr key={timetable._id} className="hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4 text-white">{timetable.courseId.code}</td>
-                    <td className="px-6 py-4 text-white">{timetable.subject}</td>
-                    <td className="px-6 py-4 text-white">{timetable.roomId.name}</td>
-                    <td className="px-6 py-4 text-white">{timetable.day}</td>
+                    <td className="px-6 py-4 text-white">{timetable.courseId?.code || 'N/A'}</td>
+                    <td className="px-6 py-4 text-white">{timetable.subject || 'N/A'}</td>
+                    <td className="px-6 py-4 text-white">{timetable.roomId?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-white">{timetable.day || 'N/A'}</td>
                     <td className="px-6 py-4 text-white">
                       {new Date(timetable.startTime).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })} -{' '}
                       {new Date(timetable.endTime).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    {/* <td className="px-6 py-4 text-white">
-                      {timetable.userIds.map(user => (
-                        <span key={user._id} className="block">{user.email} ({user.role})</span>
-                      ))}
-                    </td> */}
                     <td className="px-6 py-4 text-white">
                       <button
                         onClick={() => handleEdit(timetable)}
