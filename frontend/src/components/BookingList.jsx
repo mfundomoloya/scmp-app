@@ -72,7 +72,10 @@ const BookingList = ({ refresh }) => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log('BookingList: Fetch response:', JSON.stringify(response.data, null, 2));
+      console.log(
+        'BookingList: Fetch response:',
+        JSON.stringify(response.data, null, 2)
+      );
 
       const allBookings = response.data;
 
@@ -85,7 +88,10 @@ const BookingList = ({ refresh }) => {
             )
           : allBookings;
 
-      console.log('BookingList: User bookings:', JSON.stringify(userBookings, null, 2));
+      console.log(
+        'BookingList: User bookings:',
+        JSON.stringify(userBookings, null, 2)
+      );
       setBookings(userBookings);
       setFilteredBookings(userBookings);
       setError(null);
@@ -240,7 +246,7 @@ const BookingList = ({ refresh }) => {
       <div className="container mx-auto px-4">
         <div className="bg-black bg-opacity-80 text-white rounded-lg shadow-xl p-8 backdrop-blur-sm">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-center border-b border-gray-700 pb-4">
+            <h2 className="text-3xl font-bold text-center  text-white border-b border-gray-700 pb-4">
               {title}
             </h2>
             <Link

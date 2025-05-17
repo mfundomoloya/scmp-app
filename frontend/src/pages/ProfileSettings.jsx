@@ -188,12 +188,12 @@ const ProfileSettings = () => {
       >
         <div
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(3, 12, 199, 0.5)',
             padding: '2rem',
             borderRadius: '0.5rem',
             maxWidth: '500px',
             boxShadow:
-              '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              '0 10px 15px -3px rgba(110, 164, 249, 0.1), 0 4px 6px -2px rgba(132, 142, 226, 0.05)',
           }}
         >
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>

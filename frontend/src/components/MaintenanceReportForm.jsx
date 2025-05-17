@@ -15,18 +15,32 @@ const MaintenanceReportForm = ({ onReportSubmitted }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  console.log('MaintenanceReportForm: Rendering for user:', user?.id, 'role:', user?.role);
+  console.log(
+    'MaintenanceReportForm: Rendering for user:',
+    user?.id,
+    'role:',
+    user?.role
+  );
 
   // Fetch rooms
   useEffect(() => {
     const fetchRooms = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('MaintenanceReportForm: Fetching rooms with token:', token ? '[REDACTED]' : null);
-        console.log('MaintenanceReportForm: API URL:', import.meta.env.VITE_API_URL);
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/rooms`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        console.log(
+          'MaintenanceReportForm: Fetching rooms with token:',
+          token ? '[REDACTED]' : null
+        );
+        console.log(
+          'MaintenanceReportForm: API URL:',
+          import.meta.env.VITE_API_URL
+        );
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/rooms`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         console.log('MaintenanceReportForm: Fetched rooms:', response.data);
         if (response.data.length === 0) {
           setError('No rooms available. Contact support.');
@@ -39,11 +53,16 @@ const MaintenanceReportForm = ({ onReportSubmitted }) => {
           response: err.response?.data,
           status: err.response?.status,
         });
-        setError(err.response?.data?.msg || 'Failed to load rooms. Please try again.');
+        setError(
+          err.response?.data?.msg || 'Failed to load rooms. Please try again.'
+        );
       }
     };
     if (user) {
-      console.log('MaintenanceReportForm: Triggering fetchRooms for user:', user.id);
+      console.log(
+        'MaintenanceReportForm: Triggering fetchRooms for user:',
+        user.id
+      );
       fetchRooms();
     } else {
       console.log('MaintenanceReportForm: No user, skipping fetchRooms');
@@ -81,24 +100,34 @@ const MaintenanceReportForm = ({ onReportSubmitted }) => {
         response: err.response?.data,
         status: err.response?.status,
       });
-      setError(err.response?.data?.msg || 'Failed to submit report. Please try again.');
+      setError(
+        err.response?.data?.msg || 'Failed to submit report. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
   if (!user) {
-    return <div className="text-white">Please log in to report maintenance issues.</div>;
+    return (
+      <div className="text-white">
+        Please log in to report maintenance issues.
+      </div>
+    );
   }
 
   return (
-    <div className="bg-gray-900 bg-opacity-70 rounded-lg p-6 mb-8">
-      <h3 className="text-xl font-semibold text-white mb-4">Report Maintenance Issue</h3>
+    <div className="bg-blue-600 bg-opacity-70 rounded-lg p-6 mb-8">
+      <h3 className="text-xl font-semibold text-blue mb-4">
+        Report Maintenance Issue
+      </h3>
       {error && (
         <div className="bg-red-900 text-white p-3 rounded mb-4">{error}</div>
       )}
       {success && (
-        <div className="bg-green-900 text-white p-3 rounded mb-4">{success}</div>
+        <div className="bg-green-900 text-white p-3 rounded mb-4">
+          {success}
+        </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

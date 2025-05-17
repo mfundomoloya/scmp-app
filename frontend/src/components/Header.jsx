@@ -289,25 +289,6 @@ const Header = () => {
                     </li>
                     <li>
                       <Link
-                        to="/admin/rooms"
-                        style={getLinkStyle('/admin/rooms')}
-                        onClick={() => setIsNavigating(true)}
-                        onMouseOver={(e) =>
-                          !isActive('/admin/rooms') &&
-                          (e.target.style.color = brightBlueColor)
-                        }
-                        onMouseOut={(e) =>
-                          !isActive('/admin/rooms') &&
-                          (e.target.style.color =
-                            !isActive('/about') &&
-                            (e.target.style.color = blueColor))
-                        }
-                      >
-                        Manage Rooms
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
                         to="/admin/rooms/import"
                         style={getLinkStyle('/admin/rooms/import')}
                         onClick={() => setIsNavigating(true)}
