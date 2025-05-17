@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-//import backgroundImage from '../assets/AnnouncementB.jpeg';
 import backgroundImage from '../assets/timetable.jpg';
 
 const TimetableViewer = () => {
-  // Define colors explicitly to match Announcement component
-  const blueColor = '#1d4ed8'; // blue-700 equivalent
-  const lightBlueColor = '#dbeafe'; // blue-100 equivalent
-  const veryLightBlueColor = '#eff6ff'; // blue-50 equivalent
-  const mediumBlueColor = '#2563eb'; // blue-600 equivalent
+  const blueColor = '#1d4ed8'; // blue-700
+  const lightBlueColor = '#dbeafe'; // blue-100
+  const veryLightBlueColor = '#eff6ff'; // blue-50
+  const mediumBlueColor = '#2563eb'; // blue-600
 
   const { user } = useContext(AuthContext);
   const [timetables, setTimetables] = useState([]);
@@ -20,20 +18,23 @@ const TimetableViewer = () => {
     const fetchTimetables = async () => {
       setIsLoading(true);
       try {
-        console.log('Fetching timetables for user:', user?.email);
+        console.log('Fetching timetables for user:', user?.email, 'role:', user?.role);
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/timetable`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-            params: { timestamp: Date.now() }, // Prevent cache
+            params: { timestamp: Date.now() },
           }
         );
-        console.log('Timetables response:', response.data);
+        console.log('Timetables response:', JSON.stringify(response.data, null, 2));
         const fetchedTimetables = Array.isArray(response.data.timetables)
           ? response.data.timetables
           : [];
+        if (fetchedTimetables.length === 0) {
+          console.warn('No timetables found for user:', user?.email);
+        }
         setTimetables(fetchedTimetables);
       } catch (err) {
         console.error('Fetch timetables error:', {
@@ -41,7 +42,7 @@ const TimetableViewer = () => {
           status: err.response?.status,
           data: err.response?.data,
         });
-        setError(err.response?.data?.msg || 'Failed to fetch timetables');
+        setError(err.response?.data?.msg || 'Failed to fetch timetables. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -155,6 +156,9 @@ const TimetableViewer = () => {
               role="alert"
             >
               <p>{error}</p>
+              <p className="mt-2 text-sm">
+                If this issue persists, please contact your administrator.
+              </p>
             </div>
           </div>
         </div>
@@ -164,7 +168,6 @@ const TimetableViewer = () => {
 
   return (
     <div className="relative py-6">
-      {/* Background with Overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: `url(${backgroundImage})` }}
@@ -172,7 +175,6 @@ const TimetableViewer = () => {
         <div className="absolute inset-0 bg-white bg-opacity-90"></div>
       </div>
 
-      {/* Content */}
       <div className="container mx-auto px-6 relative z-10">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-4xl mx-auto">
           <div className="flex items-center justify-center md:justify-start mb-6">
@@ -211,8 +213,10 @@ const TimetableViewer = () => {
               style={{ borderColor: lightBlueColor }}
             >
               <p className="text-lg">
-                No timetable entries available. Please select courses in your
-                profile.
+                No timetable entries available. Please ensure you are enrolled in courses or contact your administrator.
+              </p>
+              <p className="text-sm text-gray-400 mt-2">
+                Debug: User email: {user?.email}, Role: {user?.role}
               </p>
             </div>
           ) : (
@@ -253,29 +257,37 @@ const TimetableViewer = () => {
                         {timetable.courseId?.code || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-gray-700">
-                        {timetable.subject}
+                        {timetable.subject || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-gray-700">
                         {timetable.roomId?.name || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-gray-700">
-                        {timetable.day}
+                        {timetable.day || 'N/A'}
                       </td>
                       <td className="px-6 py-4 text-gray-700">
-                        {new Date(timetable.startTime).toLocaleTimeString(
-                          'en-ZA',
-                          {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          }
-                        )}{' '}
-                        -{' '}
-                        {new Date(timetable.endTime).toLocaleTimeString(
-                          'en-ZA',
-                          {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          }
+                        {timetable.startTime && timetable.endTime ? (
+                          <>
+                            {new Date(timetable.startTime).toLocaleTimeString(
+                              'en-ZA',
+                              {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false,
+                              }
+                            )}{' '}
+                            -{' '}
+                            {new Date(timetable.endTime).toLocaleTimeString(
+                              'en-ZA',
+                              {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false,
+                              }
+                            )}
+                          </>
+                        ) : (
+                          'N/A'
                         )}
                       </td>
                     </tr>
@@ -286,7 +298,6 @@ const TimetableViewer = () => {
           )}
         </div>
 
-        {/* Divider - Similar to Announcement component */}
         <div
           style={{
             borderTop: `1px solid ${lightBlueColor}`,
