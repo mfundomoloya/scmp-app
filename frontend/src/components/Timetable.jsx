@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import backgroundImage from '../assets/AnnouncementB.jpeg';
-import timetableIcon from '../assets/timetable.jpg';
+import timetableIcon from '../assets/timeTable.jpg';
 
 const Timetable = () => {
   const blueColor = '#1d4ed8'; // blue-700
