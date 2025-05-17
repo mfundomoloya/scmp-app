@@ -133,24 +133,33 @@ const createBooking = async (req, res) => {
 const getBookings = async (req, res) => {
   try {
     console.log('Get bookings: req.user:', JSON.stringify(req.user, null, 2));
-    if (!req.user || !req.user.id) {
-      console.error('Get bookings: Missing req.user or req.user.id');
-      return res.status(401).json({ message: 'Not authorized' });
-    }
-
     let query = {};
     if (req.user.role === 'lecturer') {
       query.lecturerId = req.user.id;
-    } else if (req.user.role !== 'admin') {
-      query.userId = req.user.id;
     }
-
     const bookings = await Booking.find(query)
-      .populate('userId', 'name email')
+      .populate('userId', 'firstName lastName email')
+      .populate('roomId', 'name')
       .populate('courseId', 'code name')
-      .sort({ date: -1 });
-    console.log('Get bookings: count:', bookings.length);
-    res.json(bookings);
+      .lean();
+    
+    // Normalize startTime and endTime to HH:mm
+    const normalizedBookings = bookings.map(booking => {
+      const start = new Date(booking.startTime);
+      const end = new Date(booking.endTime);
+      return {
+        ...booking,
+        startTime: isNaN(start)
+          ? booking.startTime
+          : start.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        endTime: isNaN(end)
+          ? booking.endTime
+          : end.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      };
+    });
+
+    console.log('Get bookings: count:', normalizedBookings.length);
+    res.json(normalizedBookings);
   } catch (err) {
     console.error('Error fetching bookings:', err);
     res.status(500).json({ msg: 'Server error' });
