@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Timetable = require('../models/Timetable');
 const Course = require('../models/Course');
 const Room = require('../models/Room');
@@ -67,30 +68,30 @@ const createTimetable = async (req, res) => {
     const isLecturer = req.user.role === 'lecturer';
     if (!isLecturer && req.user.role !== 'admin') {
       console.error('Create timetable: Unauthorized');
-      return res.status(403).json({ msg: 'Unauthorized' });
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     const { courseCode, subject, roomName, day, startTime, endTime, lecturerEmails } = req.body;
 
     if (!courseCode || !subject || !roomName || !day || !startTime || !endTime) {
       console.error('Create timetable: Missing required fields');
-      return res.status(400).json({ msg: 'All fields are required' });
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
     const course = await Course.findOne({ code: courseCode });
     if (!course) {
       console.error(`Create timetable: Course not found: ${courseCode}`);
-      return res.status(404).json({ msg: `Course not found: ${courseCode}` });
+      return res.status(404).json({ message: `Course not found: ${courseCode}` });
     }
     if (!course.subjects.includes(subject)) {
       console.error(`Create timetable: Subject not found in course: ${subject}`);
-      return res.status(400).json({ msg: `Subject not found in course: ${subject}` });
+      return res.status(400).json({ message: `Subject not found in course: ${subject}` });
     }
 
     const room = await Room.findOne({ name: roomName });
     if (!room) {
       console.error(`Create timetable: Room not found: ${roomName}`);
-      return res.status(404).json({ msg: `Room not found: ${roomName}` });
+      return res.status(404).json({ message: `Room not found: ${roomName}` });
     }
 
     const students = await User.find({ courseCodes: courseCode, role: 'student' }).select('_id email role');
@@ -98,14 +99,29 @@ const createTimetable = async (req, res) => {
 
     let lecturers = [];
     if (isLecturer) {
-      lecturers = [await User.findById(req.user.id).select('_id email role')];
+      const lecturer = await User.findById(req.user.id).select('_id email role');
+      if (!lecturer) {
+        console.error('Create timetable: Lecturer user not found');
+        return res.status(404).json({ message: 'Lecturer user not found' });
+      }
+      lecturers = [lecturer];
     } else if (lecturerEmails) {
-      const lecturerEmailArray = lecturerEmails.split(',').map(email => email.trim());
+      const lecturerEmailArray = Array.isArray(lecturerEmails)
+        ? lecturerEmails
+        : lecturerEmails.split(',').map(email => email.trim());
       lecturers = await User.find({ email: { $in: lecturerEmailArray }, role: 'lecturer' }).select('_id email role');
+      if (lecturers.length === 0) {
+        console.error('Create timetable: No lecturers found');
+        return res.status(400).json({ message: 'At least one lecturer must be assigned' });
+      }
       if (lecturers.length !== lecturerEmailArray.length) {
         console.error('Create timetable: Some lecturers not found');
-        return res.status(404).json({ msg: 'One or more lecturers not found' });
+        return res.status(404).json({ message: 'One or more lecturers not found' });
       }
+    } else {
+      // No lecturerEmails provided
+      console.error('Create timetable: No lecturer assigned');
+      return res.status(400).json({ message: 'At least one lecturer must be assigned' });
     }
 
     const userIds = [...students, ...lecturers];
@@ -115,11 +131,11 @@ const createTimetable = async (req, res) => {
     const endTimeDate = new Date(`1970-01-01T${endTime}:00`);
     if (isNaN(startTimeDate) || isNaN(endTimeDate)) {
       console.error('Create timetable: Invalid time format');
-      return res.status(400).json({ msg: 'Invalid time format' });
+      return res.status(400).json({ message: 'Invalid time format' });
     }
     if (endTimeDate <= startTimeDate) {
       console.error('Create timetable: End time must be after start time');
-      return res.status(400).json({ msg: 'End time must be after start time' });
+      return res.status(400).json({ message: 'End time must be after start time' });
     }
 
     const bookings = await Booking.find({
@@ -135,12 +151,12 @@ const createTimetable = async (req, res) => {
       return startTimeDate < bEnd && endTimeDate > bStart;
     });
     if (hasBookingConflict) {
-      return res.status(400).json({ msg: 'Room is booked during this time slot' });
+      return res.status(400).json({ message: 'Room is booked during this time slot' });
     }
 
     const timetable = new Timetable({
       courseId: course._id,
-      lecturerId: isLecturer ? req.user.id : lecturers[0]?._id,
+      lecturerId: isLecturer ? req.user.id : lecturers[0]._id,
       subject,
       roomId: room._id,
       userIds: userIds.map(user => user._id),
@@ -155,12 +171,12 @@ const createTimetable = async (req, res) => {
     const populatedTimetable = await Timetable.findById(timetable._id)
       .populate('courseId', 'code name')
       .populate('roomId', 'name')
-      .populate('userIds', 'email role');
+      .populate('userIds', 'email role displayName');
 
     if (!populatedTimetable.courseId) {
       console.error('Create timetable: Created timetable has invalid courseId:', timetable._id);
       await Timetable.deleteOne({ _id: timetable._id });
-      return res.status(500).json({ msg: 'Failed to create timetable: Invalid course reference' });
+      return res.status(500).json({ message: 'Failed to create timetable: Invalid course reference' });
     }
 
     const recipients = populatedTimetable.userIds.map(user => user.email);
@@ -183,20 +199,34 @@ const createTimetable = async (req, res) => {
     res.status(201).json(populatedTimetable);
   } catch (err) {
     console.error('Create timetable: Error:', err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
 const getTimetables = async (req, res) => {
   try {
     console.log('Get timetables: req.user:', JSON.stringify(req.user, null, 2));
+    console.log('Get timetables: req.query:', JSON.stringify(req.query, null, 2));
+
     let query = {};
     if (req.user.role === 'student') {
-      query.userIds = req.user.id;
+      query.userIds = new mongoose.Types.ObjectId(req.user.id);
       console.log('Get timetables: Querying for student ID:', req.user.id);
     } else if (req.user.role === 'lecturer' && req.path.includes('/lecturer')) {
-      query.lecturerId = req.user.id;
+      query.lecturerId = mongoose.Types.ObjectId(req.user.id);
       console.log('Get timetables: Querying for lecturer ID:', req.user.id);
+    }
+
+    // Handle courseCodes query parameter
+    const { courseCodes } = req.query;
+    if (courseCodes) {
+      const courseCodeArray = courseCodes.split(',').map(code => code.trim());
+      const courses = await Course.find({ code: { $in: courseCodeArray } }).select('_id');
+      if (courses.length === 0) {
+        console.warn('Get timetables: No courses found for courseCodes:', courseCodes);
+        return res.json([]);
+      }
+      query.courseId = { $in: courses.map(c => c._id) };
     }
 
     const timetables = await Timetable.find(query)
@@ -206,11 +236,10 @@ const getTimetables = async (req, res) => {
         match: { _id: { $exists: true } },
       })
       .populate('roomId', 'name maintenance')
-      .populate('userIds', 'email role')
+      .populate('userIds', 'email role displayName')
       .sort({ startTime: 1 })
       .lean();
 
-    // Log invalid timetables
     const invalidTimetables = timetables.filter(t => t.courseId === null);
     if (invalidTimetables.length > 0) {
       console.warn(
@@ -218,7 +247,7 @@ const getTimetables = async (req, res) => {
         JSON.stringify(
           invalidTimetables.map(t => ({
             _id: t._id,
-            invalidCourseId: t.courseId, // Log the actual courseId value
+            courseId: t.courseId,
             subject: t.subject,
             userIds: t.userIds.map(u => u.email),
           })),
@@ -228,28 +257,38 @@ const getTimetables = async (req, res) => {
       );
     }
 
-    // Filter out timetables with null courseId
     const validTimetables = timetables.filter(t => t.courseId !== null);
+    console.log('Get timetables: Found timetables:', validTimetables.length);
+
+    // Transform to frontend-expected format
+    const formattedTimetables = validTimetables.map(t => ({
+      course: t.courseId?.code || 'N/A',
+      subject: t.subject || 'N/A',
+      room: t.roomId?.name || 'N/A',
+      day: t.day || 'N/A',
+      time: t.startTime && t.endTime
+        ? `${new Date(t.startTime).toLocaleTimeString('en-ZA', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          })} - ${new Date(t.endTime).toLocaleTimeString('en-ZA', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          })}`
+        : 'N/A',
+    }));
+
     console.log(
       'Get timetables: total count:', timetables.length,
       'valid count:', validTimetables.length,
-      'timetables:', JSON.stringify(
-        validTimetables.map(t => ({
-          _id: t._id,
-          courseCode: t.courseId?.code,
-          subject: t.subject,
-          userIds: t.userIds.map(u => u.email),
-        })),
-        null,
-        2
-      )
+      'formatted:', JSON.stringify(formattedTimetables, null, 2)
     );
 
-    const conflicts = detectConflicts(validTimetables);
-    res.json({ timetables: validTimetables, conflicts });
+    res.json(formattedTimetables);
   } catch (err) {
     console.error('Error fetching timetables:', err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -259,14 +298,14 @@ const getAllTimetables = async (req, res) => {
     const timetables = await Timetable.find()
       .populate('courseId', 'code name')
       .populate('roomId', 'name maintenance')
-      .populate('userIds', 'email role')
+      .populate('userIds', 'email role displayName')
       .sort({ startTime: 1 });
     console.log('Get all timetables: count:', timetables.length);
     const conflicts = detectConflicts(timetables);
     res.json({ timetables, conflicts });
   } catch (err) {
     console.error('Error fetching all timetables:', err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -278,26 +317,26 @@ const getFilteredTimetables = async (req, res) => {
     const { courseCode } = req.query;
     if (!courseCode) {
       console.error('Get filtered timetables: Course code is required');
-      return res.status(400).json({ msg: 'Course code is required' });
+      return res.status(400).json({ message: 'Course code is required' });
     }
 
     const course = await Course.findOne({ code: courseCode });
     if (!course) {
       console.error(`Get filtered timetables: Course not found: ${courseCode}`);
-      return res.status(404).json({ msg: `Course not found: ${courseCode}` });
+      return res.status(404).json({ message: `Course not found: ${courseCode}` });
     }
 
     let query = { courseId: course._id };
     if (req.user.role === 'student') {
-      query.userIds = req.user.id;
+      query.userIds = mongoose.Types.ObjectId(req.user.id);
     } else if (req.user.role === 'lecturer') {
-      query.lecturerId = req.user.id;
+      query.lecturerId = mongoose.Types.ObjectId(req.user.id);
     }
 
     const timetables = await Timetable.find(query)
       .populate('courseId', 'code name')
       .populate('roomId', 'name maintenance')
-      .populate('userIds', 'email role')
+      .populate('userIds', 'email role displayName')
       .sort({ startTime: 1 });
 
     console.log('Get filtered timetables: count:', timetables.length);
@@ -305,7 +344,7 @@ const getFilteredTimetables = async (req, res) => {
     res.json({ timetables, conflicts });
   } catch (err) {
     console.error('Error fetching filtered timetables:', err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -318,41 +357,41 @@ const updateTimetable = async (req, res) => {
     const isLecturer = req.user.role === 'lecturer';
     if (!isLecturer && req.user.role !== 'admin') {
       console.error('Update timetable: Unauthorized');
-      return res.status(403).json({ msg: 'Unauthorized' });
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     const { courseCode, subject, roomName, day, startTime, endTime, lecturerEmails } = req.body;
 
     if (!courseCode || !subject || !roomName || !day || !startTime || !endTime) {
       console.error('Update timetable: Missing required fields');
-      return res.status(400).json({ msg: 'All fields are required' });
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
     const timetable = await Timetable.findById(req.params.id);
     if (!timetable) {
       console.error('Update timetable: Timetable not found');
-      return res.status(404).json({ msg: 'Timetable not found' });
+      return res.status(404).json({ message: 'Timetable not found' });
     }
 
     if (isLecturer && timetable.lecturerId.toString() !== req.user.id) {
       console.error('Update timetable: Unauthorized lecturer');
-      return res.status(403).json({ msg: 'Unauthorized' });
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     const course = await Course.findOne({ code: courseCode });
     if (!course) {
       console.error(`Update timetable: Course not found: ${courseCode}`);
-      return res.status(404).json({ msg: `Course not found: ${courseCode}` });
+      return res.status(404).json({ message: `Course not found: ${courseCode}` });
     }
     if (!course.subjects.includes(subject)) {
       console.error(`Update timetable: Subject not found in course: ${subject}`);
-      return res.status(400).json({ msg: `Subject not found in course: ${subject}` });
+      return res.status(400).json({ message: `Subject not found in course: ${subject}` });
     }
 
     const room = await Room.findOne({ name: roomName });
     if (!room) {
       console.error(`Update timetable: Room not found: ${roomName}`);
-      return res.status(404).json({ msg: `Room not found: ${roomName}` });
+      return res.status(404).json({ message: `Room not found: ${roomName}` });
     }
 
     const students = await User.find({ courseCodes: courseCode, role: 'student' }).select('_id email role');
@@ -362,11 +401,13 @@ const updateTimetable = async (req, res) => {
     if (isLecturer) {
       lecturers = [await User.findById(req.user.id).select('_id email role')];
     } else if (lecturerEmails) {
-      const lecturerEmailArray = lecturerEmails.split(',').map(email => email.trim());
+      const lecturerEmailArray = Array.isArray(lecturerEmails)
+        ? lecturerEmails
+        : lecturerEmails.split(',').map(email => email.trim());
       lecturers = await User.find({ email: { $in: lecturerEmailArray }, role: 'lecturer' }).select('_id email role');
       if (lecturers.length !== lecturerEmailArray.length) {
         console.error('Update timetable: Some lecturers not found');
-        return res.status(404).json({ msg: 'One or more lecturers not found' });
+        return res.status(404).json({ message: 'One or more lecturers not found' });
       }
     }
 
@@ -377,11 +418,11 @@ const updateTimetable = async (req, res) => {
     const endTimeDate = new Date(`1970-01-01T${endTime}:00`);
     if (isNaN(startTimeDate) || isNaN(endTimeDate)) {
       console.error('Update timetable: Invalid time format');
-      return res.status(400).json({ msg: 'Invalid time format' });
+      return res.status(400).json({ message: 'Invalid time format' });
     }
     if (endTimeDate <= startTimeDate) {
       console.error('Update timetable: End time must be after start time');
-      return res.status(400).json({ msg: 'End time must be after start time' });
+      return res.status(400).json({ message: 'End time must be after start time' });
     }
 
     const bookings = await Booking.find({
@@ -397,7 +438,7 @@ const updateTimetable = async (req, res) => {
       return startTimeDate < bEnd && endTimeDate > bStart;
     });
     if (hasBookingConflict) {
-      return res.status(400).json({ msg: 'Room is booked during this time slot' });
+      return res.status(400).json({ message: 'Room is booked during this time slot' });
     }
 
     timetable.courseId = course._id;
@@ -408,6 +449,7 @@ const updateTimetable = async (req, res) => {
     timetable.startTime = startTimeDate;
     timetable.endTime = endTimeDate;
     timetable.day = day;
+    timetable.updatedAt = new Date();
 
     await timetable.save();
     console.log('Update timetable: Updated:', JSON.stringify(timetable, null, 2));
@@ -415,17 +457,17 @@ const updateTimetable = async (req, res) => {
     const populatedTimetable = await Timetable.findById(timetable._id)
       .populate('courseId', 'code name')
       .populate('roomId', 'name')
-      .populate('userIds', 'email role');
+      .populate('userIds', 'email role displayName');
 
     if (!populatedTimetable.courseId) {
       console.error('Update timetable: Updated timetable has invalid courseId:', timetable._id);
-      return res.status(500).json({ msg: 'Failed to update timetable: Invalid course reference' });
+      return res.status(500).json({ message: 'Failed to update timetable: Invalid course reference' });
     }
 
     res.json(populatedTimetable);
   } catch (err) {
     console.error('Update timetable: Error:', err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -437,26 +479,26 @@ const deleteTimetable = async (req, res) => {
     const isLecturer = req.user.role === 'lecturer';
     if (!isLecturer && req.user.role !== 'admin') {
       console.error('Delete timetable: Unauthorized');
-      return res.status(403).json({ msg: 'Unauthorized' });
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     const timetable = await Timetable.findById(req.params.id);
     if (!timetable) {
       console.error('Delete timetable: Timetable not found');
-      return res.status(404).json({ msg: 'Timetable not found' });
+      return res.status(404).json({ message: 'Timetable not found' });
     }
 
     if (isLecturer && timetable.lecturerId.toString() !== req.user.id) {
       console.error('Delete timetable: Unauthorized lecturer');
-      return res.status(403).json({ msg: 'Unauthorized' });
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     await timetable.deleteOne();
     console.log('Delete timetable: Deleted:', req.params.id);
-    res.json({ msg: 'Timetable deleted' });
+    res.json({ message: 'Timetable deleted' });
   } catch (err) {
     console.error('Error deleting timetable:', err);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
