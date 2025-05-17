@@ -19,6 +19,16 @@ const detectConflicts = (timetables) => {
     for (let j = i + 1; j < timetables.length; j++) {
       const t1 = timetables[i];
       const t2 = timetables[j];
+      // Skip if courseId is null or undefined
+      if (!t1.courseId || !t2.courseId) {
+        console.warn('detectConflicts: Skipping timetable with null courseId:', {
+          t1_id: t1._id,
+          t2_id: t2._id,
+          t1_courseId: t1.courseId,
+          t2_courseId: t2.courseId,
+        });
+        continue;
+      }
       if (t1.day === t2.day && t1.roomId.toString() === t2.roomId.toString()) {
         const t1Start = new Date(t1.startTime);
         const t1End = new Date(t1.endTime);
@@ -26,8 +36,22 @@ const detectConflicts = (timetables) => {
         const t2End = new Date(t2.endTime);
         if (t1Start < t2End && t2Start < t1End) {
           conflicts.push({
-            timetable1: { id: t1._id, course: t1.courseId.code, subject: t1.subject, day: t1.day, startTime: t1.startTime, endTime: t1.endTime },
-            timetable2: { id: t2._id, course: t2.courseId.code, subject: t2.subject, day: t2.day, startTime: t2.startTime, endTime: t2.endTime },
+            timetable1: {
+              id: t1._id,
+              course: t1.courseId.code,
+              subject: t1.subject,
+              day: t1.day,
+              startTime: t1.startTime,
+              endTime: t1.endTime,
+            },
+            timetable2: {
+              id: t2._id,
+              course: t2.courseId.code,
+              subject: t2.subject,
+              day: t2.day,
+              startTime: t2.startTime,
+              endTime: t2.endTime,
+            },
           });
         }
       }
@@ -135,6 +159,12 @@ const createTimetable = async (req, res) => {
       .populate('roomId', 'name')
       .populate('userIds', 'email role');
 
+    if (!populatedTimetable.courseId) {
+      console.error('Create timetable: Created timetable has invalid courseId:', timetable._id);
+      await Timetable.deleteOne({ _id: timetable._id });
+      return res.status(500).json({ msg: 'Failed to create timetable: Invalid course reference' });
+    }
+
     const recipients = populatedTimetable.userIds.map(user => user.email);
     if (recipients.length > 0) {
       const mailOptions = {
@@ -170,13 +200,22 @@ const getTimetables = async (req, res) => {
     }
 
     const timetables = await Timetable.find(query)
-      .populate('courseId', 'code name')
+      .populate({
+        path: 'courseId',
+        select: 'code name',
+        match: { _id: { $exists: true } }, // Ensure course exists
+      })
       .populate('roomId', 'name maintenance')
       .populate('userIds', 'email role')
-      .sort({ startTime: 1 });
-    console.log('Get timetables: count:', timetables.length);
-    const conflicts = detectConflicts(timetables);
-    res.json({ timetables, conflicts });
+      .sort({ startTime: 1 })
+      .lean(); // Use lean for performance
+
+    // Filter out timetables with null courseId
+    const validTimetables = timetables.filter(t => t.courseId !== null);
+    console.log('Get timetables: total count:', timetables.length, 'valid count:', validTimetables.length);
+
+    const conflicts = detectConflicts(validTimetables);
+    res.json({ timetables: validTimetables, conflicts });
   } catch (err) {
     console.error('Error fetching timetables:', err);
     res.status(500).json({ msg: 'Server error' });
@@ -240,7 +279,7 @@ const getFilteredTimetables = async (req, res) => {
 };
 
 const updateTimetable = async (req, res) => {
-  try {
+ try {
     console.log('Update timetable: req.body:', JSON.stringify(req.body, null, 2));
     console.log('Update timetable: req.user:', JSON.stringify(req.user, null, 2));
     console.log('Update timetable: req.params.id:', req.params.id);
@@ -347,6 +386,11 @@ const updateTimetable = async (req, res) => {
       .populate('courseId', 'code name')
       .populate('roomId', 'name')
       .populate('userIds', 'email role');
+
+    if (!populatedTimetable.courseId) {
+      console.error('Update timetable: Updated timetable has invalid courseId:', timetable._id);
+      return res.status(500).json({ msg: 'Failed to update timetable: Invalid course reference' });
+    }
 
     res.json(populatedTimetable);
   } catch (err) {
