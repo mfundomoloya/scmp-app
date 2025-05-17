@@ -9,12 +9,6 @@ const Contact = () => {
   });
   const [submitted, setSubmitted] = useState(false);
 
-  // Color scheme variables
-  const blueColor = '#1d4ed8';
-  const lightBlueColor = '#dbeafe';
-  const veryLightBlueColor = '#eff6ff';
-  //const mediumBlueColor = '#2563eb';
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevState) => ({
@@ -46,158 +40,115 @@ const Contact = () => {
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: 'url(/images/campus-building.jpg)' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-black to-blue-900 bg-opacity-80"></div>
+        <div className="absolute inset-0 bg-black bg-opacity-75"></div>
       </div>
 
       {/* Content */}
       <div className="container mx-auto px-4 py-16 relative z-10">
-        <div
-          className="max-w-4xl mx-auto bg-white bg-opacity-95 p-8 md:p-10 rounded-xl shadow-2xl"
-          style={{ borderTop: `4px solid ${blueColor}` }}
-        >
-          <h1 className="text-3xl md:text-4xl font-bold text-black mb-8 pb-4 border-b border-gray-200">
+        <div className="max-w-4xl mx-auto bg-white bg-opacity-90 p-8 rounded-lg shadow-xl">
+          <h1 className="text-3xl font-bold text-black mb-6 border-b pb-3">
             Contact Us
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <div className="prose max-w-none mb-6">
-                <p className="text-lg mb-6 leading-relaxed text-gray-700">
+                <p className="text-lg mb-4">
                   Need support or have a question? Reach out to our development
                   team:
                 </p>
 
-                <div className="flex items-center my-6 transition-transform duration-200 hover:translate-x-2">
-                  <div
-                    className="flex items-center justify-center h-10 w-10 rounded-full mr-4"
-                    style={{ backgroundColor: lightBlueColor }}
+                <div className="flex items-center my-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-blue-600 mr-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      style={{ color: blueColor }}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-lg font-semibold text-gray-800">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span className="text-lg font-semibold">
                     support@smartcampusportal.edu
                   </span>
                 </div>
 
-                <div className="flex items-center my-6 transition-transform duration-200 hover:translate-x-2">
-                  <div
-                    className="flex items-center justify-center h-10 w-10 rounded-full mr-4"
-                    style={{ backgroundColor: lightBlueColor }}
+                <div className="flex items-center my-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-blue-600 mr-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      style={{ color: blueColor }}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-lg text-gray-700">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <span className="text-lg">
                     Visit our Help Desk during campus hours
                   </span>
                 </div>
 
-                <div className="flex items-center my-6 transition-transform duration-200 hover:translate-x-2">
-                  <div
-                    className="flex items-center justify-center h-10 w-10 rounded-full mr-4"
-                    style={{ backgroundColor: lightBlueColor }}
+                <div className="flex items-center my-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-blue-600 mr-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      style={{ color: blueColor }}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-lg text-gray-700">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span className="text-lg">
                     Monday-Friday: 8:00 AM - 5:00 PM
                   </span>
                 </div>
 
-                <div
-                  className="mt-8 p-6 rounded-lg"
-                  style={{ backgroundColor: veryLightBlueColor }}
-                >
-                  <p className="text-lg text-gray-700 leading-relaxed">
-                    We're here to ensure your experience with the portal is
-                    seamless and productive.
-                  </p>
-                </div>
+                <p className="text-lg mt-6">
+                  We're here to ensure your experience with the portal is
+                  seamless and productive.
+                </p>
               </div>
             </div>
 
             <div>
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {submitted && (
                   <div
-                    className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-md shadow-md mb-6 animate-pulse"
+                    className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
                     role="alert"
                   >
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <svg
-                          className="h-5 w-5 text-green-500"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium">
-                          Thank you! Your message has been sent successfully.
-                        </p>
-                      </div>
-                    </div>
+                    <strong className="font-bold">Thank you! </strong>
+                    <span className="block sm:inline">
+                      Your message has been sent successfully.
+                    </span>
                   </div>
                 )}
 
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-gray-700 font-semibold mb-2"
+                    className="block text-gray-700 font-semibold mb-1"
                   >
                     Name
                   </label>
@@ -207,16 +158,16 @@ const Contact = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                    placeholder="Your name"
+                    placeholder="Name"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-gray-700 font-semibold mb-2"
+                    className="block text-gray-700 font-semibold mb-1"
                   >
                     Email
                   </label>
@@ -226,16 +177,16 @@ const Contact = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                    placeholder="Your email address"
+                    placeholder="Email"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="subject"
-                    className="block text-gray-700 font-semibold mb-2"
+                    className="block text-gray-700 font-semibold mb-1"
                   >
                     Subject
                   </label>
@@ -245,16 +196,16 @@ const Contact = () => {
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                    placeholder="Message subject"
+                    placeholder="Subject"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="message"
-                    className="block text-gray-700 font-semibold mb-2"
+                    className="block text-gray-700 font-semibold mb-1"
                   >
                     Message
                   </label>
@@ -264,16 +215,15 @@ const Contact = () => {
                     value={formData.message}
                     onChange={handleChange}
                     rows="5"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                    placeholder="Your message details"
+                    placeholder="Your Message"
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  style={{ backgroundColor: blueColor }}
-                  className="w-full py-3 px-6 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition-all duration-200 transform hover:-translate-y-1"
+                  className="bg-blue-600 hover:bg-blue-700 text-gray-700 font-semibold py-2 px-6 rounded-md transition duration-150"
                 >
                   Send Message
                 </button>
