@@ -19,7 +19,6 @@ const detectConflicts = (timetables) => {
     for (let j = i + 1; j < timetables.length; j++) {
       const t1 = timetables[i];
       const t2 = timetables[j];
-      // Skip if courseId is null or undefined
       if (!t1.courseId || !t2.courseId) {
         console.warn('detectConflicts: Skipping timetable with null courseId:', {
           t1_id: t1._id,
@@ -123,7 +122,6 @@ const createTimetable = async (req, res) => {
       return res.status(400).json({ msg: 'End time must be after start time' });
     }
 
-    // Check booking conflicts
     const bookings = await Booking.find({
       room: room.name,
       status: { $ne: 'cancelled' },
@@ -195,24 +193,57 @@ const getTimetables = async (req, res) => {
     let query = {};
     if (req.user.role === 'student') {
       query.userIds = req.user.id;
+      console.log('Get timetables: Querying for student ID:', req.user.id);
     } else if (req.user.role === 'lecturer' && req.path.includes('/lecturer')) {
       query.lecturerId = req.user.id;
+      console.log('Get timetables: Querying for lecturer ID:', req.user.id);
     }
 
     const timetables = await Timetable.find(query)
       .populate({
         path: 'courseId',
         select: 'code name',
-        match: { _id: { $exists: true } }, // Ensure course exists
+        match: { _id: { $exists: true } },
       })
       .populate('roomId', 'name maintenance')
       .populate('userIds', 'email role')
       .sort({ startTime: 1 })
-      .lean(); // Use lean for performance
+      .lean();
+
+    // Log invalid timetables
+    const invalidTimetables = timetables.filter(t => t.courseId === null);
+    if (invalidTimetables.length > 0) {
+      console.warn(
+        'Get timetables: Invalid timetables with null courseId:',
+        JSON.stringify(
+          invalidTimetables.map(t => ({
+            _id: t._id,
+            invalidCourseId: t.courseId, // Log the actual courseId value
+            subject: t.subject,
+            userIds: t.userIds.map(u => u.email),
+          })),
+          null,
+          2
+        )
+      );
+    }
 
     // Filter out timetables with null courseId
     const validTimetables = timetables.filter(t => t.courseId !== null);
-    console.log('Get timetables: total count:', timetables.length, 'valid count:', validTimetables.length);
+    console.log(
+      'Get timetables: total count:', timetables.length,
+      'valid count:', validTimetables.length,
+      'timetables:', JSON.stringify(
+        validTimetables.map(t => ({
+          _id: t._id,
+          courseCode: t.courseId?.code,
+          subject: t.subject,
+          userIds: t.userIds.map(u => u.email),
+        })),
+        null,
+        2
+      )
+    );
 
     const conflicts = detectConflicts(validTimetables);
     res.json({ timetables: validTimetables, conflicts });
@@ -279,7 +310,7 @@ const getFilteredTimetables = async (req, res) => {
 };
 
 const updateTimetable = async (req, res) => {
- try {
+  try {
     console.log('Update timetable: req.body:', JSON.stringify(req.body, null, 2));
     console.log('Update timetable: req.user:', JSON.stringify(req.user, null, 2));
     console.log('Update timetable: req.params.id:', req.params.id);
@@ -353,7 +384,6 @@ const updateTimetable = async (req, res) => {
       return res.status(400).json({ msg: 'End time must be after start time' });
     }
 
-    // Check booking conflicts
     const bookings = await Booking.find({
       room: room.name,
       status: { $ne: 'cancelled' },

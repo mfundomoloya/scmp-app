@@ -17,6 +17,7 @@ const notificationRoutes = require('./routes/notification');
 const roomRoutes = require('./routes/roomsRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const requestRoutes = require('./routes/requestRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const multer = require('multer');
 const path = require('path');
 
@@ -68,6 +69,7 @@ app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/timetable', timetableRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Socket authentication middleware
 io.use((socket, next) => {

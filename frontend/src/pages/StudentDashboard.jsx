@@ -36,33 +36,35 @@ const StudentDashboard = () => {
           ? timetableRes.data.timetables
           : [];
 
-        const upcoming = timetableData
-          .map(t => {
-            if (!t.courseId?.code || !t.subject || !t.roomId?.name || !t.day || !t.startTime || !t.endTime) {
-              console.warn('Invalid timetable entry:', t);
-              return null;
-            }
-            const start = new Date(t.startTime).toLocaleTimeString('en-ZA', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false,
-            });
-            const end = new Date(t.endTime).toLocaleTimeString('en-ZA', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false,
-            });
-            return {
-              id: t._id,
-              course: t.courseId.code,
-              title: t.subject,
-              time: `${t.day}, ${start}-${end}`,
-              room: t.roomId.name,
-            };
-          })
-          .filter(t => t !== null)
-          .slice(0, 2);
-        setUpcomingClasses(upcoming);
+       const upcoming = timetableData
+      .filter(t => t.courseId)
+      .map(t => {
+        if (!t.courseId?.code || !t.subject || !t.roomId?.name || !t.startTime || !t.endTime) {
+          console.warn('Invalid timetable entry:', t);
+          return null;
+        }
+        const start = new Date(t.startTime).toLocaleTimeString('en-ZA', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+        const end = new Date(t.endTime).toLocaleTimeString('en-ZA', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+        return {
+          id: t._id,
+          course: t.courseId.code,
+          title: t.subject,
+          time: `${t.day}, ${start}-${end}`,
+          room: t.roomId.name,
+          students: t.userIds?.length || 0,
+        };
+      })
+      .filter(t => t !== null)
+      .slice(0, 2);
+    setUpcomingClasses(upcoming);
 
         // Fetch announcements
         const announcementRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/announcements`, {

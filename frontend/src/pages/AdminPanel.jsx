@@ -1,17 +1,59 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import axios from 'axios';
 
 const AdminPanel = () => {
   const { user } = useContext(AuthContext);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [statistics, setStatistics] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   console.log(
     'AdminPanel: User:',
     user ? { id: user.id, role: user.role, name: user.name } : null
   );
 
-  // Color variables for consistency
+  // Fetch statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/admin/stats`,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
+        console.log('AdminPanel: Stats response:', JSON.stringify(response.data, null, 2));
+        setStatistics([
+          { label: 'Active Bookings', value: response.data.activeBookings },
+          { label: 'Available Rooms', value: response.data.availableRooms },
+          { label: 'Maintenance Issues', value: response.data.maintenanceIssues },
+          { label: 'Users Registered', value: response.data.usersRegistered },
+        ]);
+      } catch (err) {
+        console.error('AdminPanel: Fetch stats error:', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
+        setError(err.response?.data?.msg || 'Failed to fetch statistics');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user && user.role === 'admin') {
+      fetchStats();
+    } else {
+      setIsLoading(false);
+      setError('Unauthorized access');
+    }
+  }, [user]);
+
+  // Color variables
   const blueColor = '#1E40AF';
   const lightBlueColor = '#3B82F6';
   const hoverBlueColor = '#1E3A8A';
@@ -20,7 +62,7 @@ const AdminPanel = () => {
   const textColor = '#1F2937';
   const secondaryTextColor = '#4B5563';
 
-  // Cards data for admin features
+  // Admin features
   const adminFeatures = [
     {
       id: 'bookings',
@@ -66,14 +108,6 @@ const AdminPanel = () => {
     },
   ];
 
-  // Statistics for the dashboard
-  const statistics = [
-    { label: 'Active Bookings', value: '142' },
-    { label: 'Available Rooms', value: '38' },
-    { label: 'Maintenance Issues', value: '12' },
-    { label: 'Users Registered', value: '1,245' },
-  ];
-
   return (
     <div
       style={{
@@ -82,13 +116,12 @@ const AdminPanel = () => {
         padding: '2rem 1.5rem',
         backgroundColor: bgColor,
         backgroundImage:
-          "url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')",
+          "url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
       }}
     >
-      {/* Overlay */}
       <div
         style={{
           position: 'absolute',
@@ -101,7 +134,6 @@ const AdminPanel = () => {
         }}
       />
 
-      {/* Content */}
       <div
         style={{
           position: 'relative',
@@ -110,7 +142,6 @@ const AdminPanel = () => {
           margin: '0 auto',
         }}
       >
-        {/* Welcome Header */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <h1
             style={{
@@ -130,51 +161,86 @@ const AdminPanel = () => {
               margin: '0 auto',
             }}
           >
-            Manage and oversee all campus operations from this central
-            dashboard.
+            Manage and oversee all campus operations from this central dashboard.
           </p>
         </div>
 
-        {/* Statistics Section */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '1rem',
-            justifyContent: 'center',
-            marginBottom: '3rem',
-          }}
-        >
-          {statistics.map((stat, index) => (
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div
-              key={index}
               style={{
-                backgroundColor: cardBgColor,
-                padding: '1.5rem',
-                borderRadius: '0.5rem',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                minWidth: '200px',
-                flex: '1',
-                textAlign: 'center',
-                border: `1px solid ${lightBlueColor}`,
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                border: `4px solid ${lightBlueColor}`,
+                borderTop: '4px solid transparent',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto',
               }}
-            >
-              <h3
+            ></div>
+            <p style={{ color: secondaryTextColor, marginTop: '1rem' }}>
+              Loading statistics...
+            </p>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        ) : error ? (
+          <div
+            style={{
+              backgroundColor: '#FEE2E2',
+              color: '#DC2626',
+              padding: '1rem',
+              borderRadius: '0.5rem',
+              textAlign: 'center',
+              marginBottom: '2rem',
+            }}
+          >
+            {error}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              justifyContent: 'center',
+              marginBottom: '3rem',
+            }}
+          >
+            {statistics.map((stat, index) => (
+              <div
+                key={index}
                 style={{
-                  color: blueColor,
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
+                  backgroundColor: cardBgColor,
+                  padding: '1.5rem',
+                  borderRadius: '0.5rem',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                  minWidth: '200px',
+                  flex: '1',
+                  textAlign: 'center',
+                  border: `1px solid ${lightBlueColor}`,
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
-                {stat.value}
-              </h3>
-              <p style={{ color: secondaryTextColor }}>{stat.label}</p>
-            </div>
-          ))}
-        </div>
+                <h3
+                  style={{
+                    color: blueColor,
+                    fontSize: '2.5rem',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {stat.value}
+                </h3>
+                <p style={{ color: secondaryTextColor }}>{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Features Grid */}
         <h2
           style={{
             fontSize: '1.75rem',
@@ -255,7 +321,6 @@ const AdminPanel = () => {
           ))}
         </div>
 
-        {/* Quick Actions */}
         <div
           style={{
             backgroundColor: cardBgColor,
@@ -365,7 +430,6 @@ const AdminPanel = () => {
           </div>
         </div>
 
-        {/* System Status */}
         <div
           style={{
             backgroundColor: cardBgColor,
