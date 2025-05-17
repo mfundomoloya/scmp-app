@@ -166,8 +166,7 @@ const MaintenanceAdmin = () => {
                     {report.roomId?.name || 'Unknown'}
                   </td>
                   <td className="px-6 py-4">
-                    {report.userId?.name || 'Unknown'}
-                  </td>
+{report.userId?.name || report.userId?.email || 'Unknown'}                  </td>
                   <td className="px-6 py-4">{report.description}</td>
                   <td className="px-6 py-4">
                     <select
