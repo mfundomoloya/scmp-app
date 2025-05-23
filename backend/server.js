@@ -22,13 +22,6 @@ const multer = require('multer');
 const path = require('path');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: 'https://scmp-app-sepia.vercel.app/', // Frontend URL (Vite default)
-    methods: ['GET', 'POST'],
-  },
-});
 const PORT = process.env.PORT || 5000;
 
 const storage = multer.diskStorage({
@@ -43,23 +36,24 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-
 // Middleware
-app.use(cors({ origin: 'https://scmp-app-sepia.vercel.app/' }));
+app.use(cors({ 
+  origin: 'https://scmp-app-sepia.vercel.app',
+  credentials: true 
+}));
 app.use(bodyParser.json());
 app.use(express.json({ extended: false }));
-// Apply rate limiter, excluding Socket.IO endpoints
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  skip: (req) => req.path.startsWith('/socket.io/'), // Exclude Socket.IO
 });
 app.use(limiter);
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Health check
 app.get('/health', (req, res) => res.status(200).json({ status: 'OK' }));
 
-//using the routes
+// Routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
@@ -72,41 +66,12 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Socket authentication middleware
-io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  if (!token) {
-    console.log('Socket auth: No token provided');
-    return next(new Error('Authentication error: No token'));
-  }
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.user = decoded;
-    console.log('Socket auth: Token verified for user:', socket.user.id);
-    next();
-  } catch (err) {
-    console.log('Socket auth error:', err.message);
-    next(new Error('Authentication error: Invalid token'));
-  }
+// Root route
+app.get('/', (req, res) => {
+  res.send('Welcome to the Smart Campus Services Portal API');
 });
 
-// Socket connection handling
-io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
-  socket.on('join', (userId) => {
-    console.log('User joined room:', userId);
-    socket.join(userId);
-  });
-  socket.on('disconnect', (reason) => {
-    console.log('Socket disconnected:', socket.id, reason);
-  });
-});
-
-// Make io accessible to controllers
-app.set('io', io);
-
-
-// Check for critical environment variables
+// Check environment variables
 if (!process.env.MONGODB_URI) {
   console.error('Error: MONGODB_URI is not defined in .env file');
   process.exit(1);
@@ -125,17 +90,14 @@ console.log('ENV loaded:', {
   FRONTEND_URL: process.env.FRONTEND_URL,
 });
 
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
+// MongoDB connection
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
-
-app.get('/', (req, res) => {
-    res.send('Welcome to the Smart Campus Services Portal API');
-});
-
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
-
+// Vercel serverless export
 module.exports = app;
