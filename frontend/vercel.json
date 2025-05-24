@@ -1,3 +1,14 @@
 {
-    "rewrites": [{ "source": "/(.*)", "destination": "index.html" }]
+  "version": 2,
+  "framework": "vite",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "outputDirectory": "dist"
 }
