@@ -18,27 +18,17 @@ const roomRoutes = require('./routes/roomsRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const requestRoutes = require('./routes/requestRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const multer = require('multer');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'public/storage/avatars');
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.user.id}-${Date.now()}${ext}`);
-  },
-});
 
-const upload = multer({ storage });
+
 
 // Middleware
 app.use(cors({ 
-  origin: 'https://scmp-app-sepia.vercel.app',
+  origin: process.env.FRONTEND_URL || 'https://scmp-app-sepia.vercel.app',
   credentials: true 
 }));
 app.use(bodyParser.json());
@@ -70,6 +60,14 @@ app.use('/api/admin', adminRoutes);
 app.get('/', (req, res) => {
   res.send('Welcome to the Smart Campus Services Portal API');
 });
+
+// Validate environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'EMAIL_USER', 'EMAIL_PASS', 'FRONTEND_URL'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+  console.error('Error: Missing environment variables:', missingEnvVars.join(', '));
+  throw new Error(`Missing environment variables: ${missingEnvVars.join(', ')}`);
+}
 
 // Check environment variables
 if (!process.env.MONGODB_URI) {
