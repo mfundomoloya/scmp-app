@@ -16,7 +16,7 @@ initializeApp(firebaseConfig);
 const storage = getStorage();
 
 router.get('/profile', protect, getProfile);
-router.put('/profile', protect, restrictTo('student'), upload.single('avatar'), updateProfile);
+router.put('/profile', protect, restrictTo('student'), updateProfile);
 router.get('/', protect, restrictTo('student', 'lecturer', 'admin'), getLecturers);
 router.post('/upload-avatar', async (req, res) => {
   const file = req.files.file;
