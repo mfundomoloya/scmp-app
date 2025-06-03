@@ -28,15 +28,12 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({ 
-    origin: 'https://scmp-app-sepia.vercel.app', // or '*'
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
+   origin: process.env.FRONTEND_URL || 'https://scmp-app-sepia.vercel.app',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.options('*', cors({
-    origin: 'https://scmp-app-sepia.vercel.app',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
-}));
+app.options('*', cors());
 
 app.use(bodyParser.json());
 app.use(express.json({ extended: false }));
@@ -69,7 +66,7 @@ app.get('/', (req, res) => {
 });
 
 // Validate environment variables
-const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'EMAIL_USER', 'EMAIL_PASS', 'FRONTEND_URL'];
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'EMAIL_USER', 'EMAIL_PASS', 'FRONTEND_URL', 'FIREBASE_API_KEY', 'FIREBASE_AUTH_DOMAIN', 'FIREBASE_PROJECT_ID', 'FIREBASE_STORAGE_BUCKET', 'FIREBASE_MESSAGING_SENDER_ID', 'FIREBASE_APP_ID'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 if (missingEnvVars.length > 0) {
   console.error('Error: Missing environment variables:', missingEnvVars.join(', '));
